@@ -19,7 +19,7 @@ d3.json(observationUrl).then(function(response) {
     var temps = observedTemps.concat(forecastTemps)
     var todayLow = d3.min(temps)
     var todayHigh = d3.max(temps)
-    var pastUrl = "../csv/" + String(month).padStart(2,'0') + String(date).padStart(2,'0') + ".csv"
+    var pastUrl = "https://istheweatherweird.github.io/istheweatherweird-data/csv/" + String(month).padStart(2,'0') + String(date).padStart(2,'0') + ".csv"
     d3.csv(pastUrl,function(d) { return {year: d.YEAR, max: +d.MAX, min: +d.MIN}}).then(function(past) { 
       var maxTemps = past.map(function(d) { return parseFloat(d.max) })
       var minTemps = past.map(function(d) { return parseFloat(d.min) })
