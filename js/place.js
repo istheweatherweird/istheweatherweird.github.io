@@ -43,13 +43,19 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
   var margin = {top: 60, right: 30, bottom: 30, left: 30},
     width = parseInt(d3.select("#" + wrapperId).style("width")) - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
+    console.log(width)
+    console.log(height)
   
   var x_with_value = d3.scaleLinear()
     .domain([Math.floor(d3.extent(pastTemps.concat(obs))[0]), Math.ceil(d3.extent(pastTemps.concat(obs))[1])])
     .range([0, width]);
 
     // Generate a histogram using twenty uniformly-spaced bins.
-    var tickNum = 15
+    if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+      var tickNum = 8
+    } else {
+      var tickNum = 15      
+    }
     var data = d3.histogram()
         .value(function(d) {return d.temp})
         .thresholds(x_with_value.ticks(tickNum))
