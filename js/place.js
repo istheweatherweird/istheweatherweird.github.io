@@ -5,7 +5,7 @@ var placeDict = {
   Chicago: {number: "725300-94846", word: "KORD"},
   SF: {number: "724940-23234", word: "KSFO"}
 }
-var place = "SF"
+var place = "Chicago"
 
 var observationUrl = "https://api.weather.gov/stations/"+ placeDict[place].word + "/observations/latest"
 
