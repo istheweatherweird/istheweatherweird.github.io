@@ -23,9 +23,9 @@
   font-weight: 300;
 }
 
-.jumbotron .container {
+/*.jumbotron .container {
   max-width: 40rem;
-}
+}*/
 
 /* graph */
 rect.bar {
@@ -44,5 +44,6 @@ rect.bar {
 }
 
 #graphWrapper {
-  font: 10px sans-serif;
+  font: 16px sans-serif;
+/*  color: white;*/
 }

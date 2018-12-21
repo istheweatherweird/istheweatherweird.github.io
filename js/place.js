@@ -1,11 +1,17 @@
 // Parse CSV
 
 // get date
-// var observationUrl = "https://api.weather.gov/stations/KORD/observations?start=" + year + "-" + month + "-" + date + "T00:00:00-06:00"
-var observationUrl = "https://api.weather.gov/stations/KORD/observations/latest"
+var placeDict = {
+  Chicago: {number: "725300-94846", word: "KORD"},
+  SF: {number: "724940-23234", word: "KSFO"}
+}
+var place = "Chicago"
+
+var observationUrl = "https://api.weather.gov/stations/"+ placeDict[place].word + "/observations/latest"
 
 d3.json(observationUrl).then(function(response) {
   var obsTime = new Date(response.properties.timestamp)
+  console.log(response.properties.timestamp)
   // put observation time at nearest hour
   if (obsTime.getMinutes() > 29) {
     obsTime.setTime(obsTime.getTime() + (60*60*1000))
@@ -13,7 +19,7 @@ d3.json(observationUrl).then(function(response) {
 
   var obsTemp = response.properties.temperature.value * 1.8 + 32;
 
-  var pastUrl = "https://istheweatherweird.github.io/istheweatherweird-data-hourly/csv/725300-94846/" + String(obsTime.getUTCMonth()+1).padStart(2,'0') + String(obsTime.getUTCDate()).padStart(2,'0') + ".csv"
+  var pastUrl = "https://istheweatherweird.github.io/istheweatherweird-data-hourly/csv/" + placeDict[place].number + "/" + String(obsTime.getUTCMonth()+1).padStart(2,'0') + String(obsTime.getUTCDate()).padStart(2,'0') + ".csv"
   var obsUTCHour = obsTime.getUTCHours()
   d3.csv(pastUrl,function(d) {
     if (+d.hour == obsUTCHour) {
@@ -21,36 +27,22 @@ d3.json(observationUrl).then(function(response) {
     };
   }).then(function(past) {
     // make histograms
-    var highWeird = makeHist("graphWrapper", obsTemp, past, " temps in Chicago", obsTime.getFullYear())
-    // var lowWeird = makeHist("minGraphWrapper", todayLow, minTemps, " lows in Chicago", "min", past)
-
-    // make weird statement
-    // if (lowWeird || highWeird) {
-    if (highWeird) {
-      d3.selectAll("#weird").text("YES")
-      // if (lowWeird && highWeird) {
-      //   "Today's high of "
-      // } else {
-      //
-      // }
-      // d3.selectAll("#sentence").text("The weather in Chicago is not weird.")
-    } else {
-      d3.selectAll("#weird").text("NO")
-      d3.selectAll("#sentence").text("The weather in Chicago is not weird.")
-    }
+    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime)
+    d3.selectAll("#weird").text(sentence)
+    // d3.selectAll("#sentence").text("The weather in Chicago is not weird.")
   });
 })
 
 data = 3
 
-var makeHist = function(wrapperId, obs, past, title, trueYear) {
+var makeHist = function(wrapperId, obs, past, obsTime) {
   var pastTemps = past.map(function(d) { return d.temp })
   // A formatter for counts.
   var formatCount = d3.format(",.0f");
 
   var margin = {top: 60, right: 30, bottom: 30, left: 30},
     width = parseInt(d3.select("#" + wrapperId).style("width")) - margin.left - margin.right,
-    height = 300 - margin.top - margin.bottom;
+    height = 500 - margin.top - margin.bottom;
   
   var x_with_value = d3.scaleLinear()
     .domain([Math.floor(d3.extent(pastTemps.concat(obs))[0]), Math.ceil(d3.extent(pastTemps.concat(obs))[1])])
@@ -107,7 +99,7 @@ var makeHist = function(wrapperId, obs, past, title, trueYear) {
         d.forEach(function(j,k) {
             svg.append("text")
             .attr("dy", ".75em")
-            .attr("y", 5 + y(d.length) + k * 10)
+            .attr("y", 5 + y(d.length) + k * 24)
             .attr("x", x(d.x0) + (x(d.x1) - x(d.x0)) / 2)
             .attr("text-anchor", "middle")
             // .attr("fill", "white")
@@ -128,22 +120,45 @@ var makeHist = function(wrapperId, obs, past, title, trueYear) {
         .attr("transform", "translate(0," + height + ")")
         .call(xAxis);
 
+        
     svg.append("text")
         .attr("dy", ".75em")
         .attr("y", -20)
         .attr("x", x(obs))
         .attr("text-anchor", "middle")
-        .text(trueYear);
-
-    svg.append("text")
-        .attr("dy", "2em")
-        .attr("y", -70)
-        .attr("x", width/2)
-        .attr("text-anchor", "middle")
-        .style("font-size", "20px")
-        .text(Date().substring(4,10) + title);
-    
-  return isweird(pastTemps,obs)
+        .text(obsTime.getFullYear());
+        
+  var totalYears = pastTemps.length
+  var sentence = "It's " + Math.round(obs,0) + "ºF, "
+  var perc = (pastTemps.filter(d => d < obs).length / totalYears) * 100
+  var typical = false
+  var record = false
+  if ((perc >= 25) && (perc <= 75)) {
+    sentence += "typical for "
+    typical = true
+  } else {
+    if (perc > 75) {
+      if (perc == 100) {
+        sentence += "the hottest "
+        record = true
+      } else {
+        sentence += "warmer than " + Math.floor(perc / 5)*5 + "% of "
+      }
+    } else {
+      if (perc == 0) {
+        sentence += "the coldest "
+        record = true
+      } else {
+        sentence += "colder than " + Math.floor((100-perc) / 5)*5 + "% of "
+      }
+    }
+  }
+  sentence += obsTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric"})
+  if (!typical && !record) {
+    sentence += " temperatures"
+  }
+  sentence += " in " + place + " since " + past[0].year + "."
+  return sentence
 }
 
 var isweird = function(vs,value) {
