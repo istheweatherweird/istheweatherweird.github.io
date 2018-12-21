@@ -9,6 +9,12 @@ var place = "Chicago"
 
 var observationUrl = "https://api.weather.gov/stations/"+ placeDict[place].word + "/observations/latest"
 
+var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+
+if (phone) {
+  $("#weird").css("font-size","30px")
+}
+
 d3.json(observationUrl).then(function(response) {
   var obsTime = new Date(response.properties.timestamp)
   console.log(response.properties.timestamp)
@@ -40,18 +46,20 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
   // A formatter for counts.
   var formatCount = d3.format(",.0f");
 
-  var margin = {top: 60, right: 30, bottom: 30, left: 30},
-    width = parseInt(d3.select("#" + wrapperId).style("width")) - margin.left - margin.right,
+  var margin = {top: 60, right: 30, bottom: 30, left: 30}
+
+ var width = parseInt(d3.select("#" + wrapperId).style("width")) - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
-    console.log(width)
-    console.log(height)
+    if (phone) {
+      height -= 100
+    }
   
   var x_with_value = d3.scaleLinear()
     .domain([Math.floor(d3.extent(pastTemps.concat(obs))[0]), Math.ceil(d3.extent(pastTemps.concat(obs))[1])])
     .range([0, width]);
 
     // Generate a histogram using twenty uniformly-spaced bins.
-    if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+    if (phone) {
       var tickNum = 8
     } else {
       var tickNum = 15      
@@ -74,7 +82,8 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
 
     var xAxis = d3.axisBottom()
         .scale(x)
-        .tickFormat(function(d) {return d + "F"});
+        .ticks(data.length+1)
+        .tickFormat(function(d) {return d+"F"});
 
     var svg = d3.select("#" + wrapperId).append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -100,19 +109,22 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
       .attr("width", function(d) { return x(d.x1) - x(d.x0) -1 ; })
       .attr("height", function(d) { return height - y(d.length); });
 
-    data.forEach(function(d,i) {
-        d = d.sort(function(e,f) { return f.year - e.year})
-        d.forEach(function(j,k) {
-            svg.append("text")
-            .attr("dy", ".75em")
-            .attr("y", 5 + y(d.length) + k * 24)
-            .attr("x", x(d.x0) + (x(d.x1) - x(d.x0)) / 2)
-            .attr("text-anchor", "middle")
-            // .attr("fill", "white")
-            // .attr("stroke", "white")
-            .text(j.year);
+      if (!phone) {
+        data.forEach(function(d,i) {
+            d = d.sort(function(e,f) { return f.year - e.year})
+            d.forEach(function(j,k) {
+                svg.append("text")
+                .attr("dy", ".75em")
+                .attr("y", 5 + y(d.length) + k * 24)
+                .attr("x", x(d.x0) + (x(d.x1) - x(d.x0)) / 2)
+                .attr("text-anchor", "middle")
+                // .attr("fill", "white")
+                // .attr("stroke", "white")
+                .text(j.year);
+            })
         })
-    })
+        
+      }
 
     // .append("text")
     //     .attr("dy", ".75em")
