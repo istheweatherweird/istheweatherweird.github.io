@@ -5,7 +5,7 @@ var placeDict = {
   Chicago: {number: "725300-94846", word: "KORD"},
   SF: {number: "724940-23234", word: "KSFO"}
 }
-var place = "Chicago"
+var place = "SF"
 
 var observationUrl = "https://api.weather.gov/stations/"+ placeDict[place].word + "/observations/latest"
 
@@ -78,7 +78,7 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
 
     svg.append("line")
         .attr("x1", x(obs))
-        .attr("y1", -10)
+        .attr("y1", -20)
         .attr("x2", x(obs))
         .attr("y2", height)
         .attr("stroke-width", 2)
@@ -122,10 +122,11 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
 
         
     svg.append("text")
-        .attr("dy", ".75em")
+        // .attr("dy", ".75em")
         .attr("y", -20)
         .attr("x", x(obs))
         .attr("text-anchor", "middle")
+        .attr("font-size", "24px")
         .text(obsTime.getFullYear());
         
   var totalYears = pastTemps.length

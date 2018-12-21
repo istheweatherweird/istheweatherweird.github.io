@@ -47,3 +47,12 @@ rect.bar {
   font: 16px sans-serif;
 /*  color: white;*/
 }
+
+.tick text {
+  font: 16px sans-serif;  
+}
+
+
+#currentYear text {
+  font: 20px sans-serif;  
+}
