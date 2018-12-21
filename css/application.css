@@ -42,3 +42,7 @@ rect.bar {
   stroke: #000;
   shape-rendering: crispEdges;
 }
+
+#graphWrapper {
+  font: 10px sans-serif;
+}

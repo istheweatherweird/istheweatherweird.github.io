@@ -1,98 +1,65 @@
 // Parse CSV
 
 // get date
-const now = new Date()
-const year = now.getFullYear()
-const month = now.getMonth() + 1
-const date = now.getDate()
-
-var observationUrl = "https://api.weather.gov/stations/KORD/observations?start=" + year + "-" + month + "-" + date + "T00:00:00-06:00"
+// var observationUrl = "https://api.weather.gov/stations/KORD/observations?start=" + year + "-" + month + "-" + date + "T00:00:00-06:00"
+var observationUrl = "https://api.weather.gov/stations/KORD/observations/latest"
 
 d3.json(observationUrl).then(function(response) {
-  var observedTemps = response.features.map(function(d) { return d.properties.temperature.value * 1.8 + 32 });
-  var lonlat = response.features[0].geometry.coordinates
-  var forecastUrl = "https://api.weather.gov/points/" + lonlat[1] + "," + lonlat[0] + "/forecast/hourly"
-  d3.json(forecastUrl).then(function(response) {
-    period = response.properties.periods;
-    var forecastHours = 24-period[0].startTime.substring(11,13)
-    var forecastTemps = period.slice(0,24-period[0].startTime.substring(11,13)).map(function(d) { return d.temperature });
-    var temps = observedTemps.concat(forecastTemps)
-    var todayLow = d3.min(temps)
-    var todayHigh = d3.max(temps)
-    var pastUrl = "https://istheweatherweird.github.io/istheweatherweird-data/csv/" + String(month).padStart(2,'0') + String(date).padStart(2,'0') + ".csv"
-    d3.csv(pastUrl,function(d) { return {year: d.YEAR, max: +d.MAX, min: +d.MIN}}).then(function(past) { 
-      var maxTemps = past.map(function(d) { return parseFloat(d.max) })
-      var minTemps = past.map(function(d) { return parseFloat(d.min) })
+  var obsTime = new Date(response.properties.timestamp)
+  // put observation time at nearest hour
+  if (obsTime.getMinutes() > 29) {
+    obsTime.setTime(obsTime.getTime() + (60*60*1000))
+  }
 
-      // make histograms
-      var highWeird = makeHist("graphWrapper", todayHigh, maxTemps, " highs in Chicago", "max", past)
-      // var lowWeird = makeHist("minGraphWrapper", todayLow, minTemps, " lows in Chicago", "min", past)
+  var obsTemp = response.properties.temperature.value * 1.8 + 32;
 
-      // make weird statement
-      // if (lowWeird || highWeird) {
-      if (highWeird) {
-        d3.selectAll("#weird").text("YES")
-        // if (lowWeird && highWeird) {
-        //   "Today's high of "
-        // } else {
-        //
-        // }
-        // d3.selectAll("#sentence").text("The weather in Chicago is not weird.")
-      } else {
-        d3.selectAll("#weird").text("NO")
-        d3.selectAll("#sentence").text("The weather in Chicago is not weird.")
-      }
-    });
-  });   
+  var pastUrl = "https://istheweatherweird.github.io/istheweatherweird-data-hourly/csv/725300-94846/" + String(obsTime.getUTCMonth()+1).padStart(2,'0') + String(obsTime.getUTCDate()).padStart(2,'0') + ".csv"
+  var obsUTCHour = obsTime.getUTCHours()
+  d3.csv(pastUrl,function(d) {
+    if (+d.hour == obsUTCHour) {
+      return {year: +d.year, temp: 32 + (+d.temp) * 0.18}
+    };
+  }).then(function(past) {
+    // make histograms
+    var highWeird = makeHist("graphWrapper", obsTemp, past, " temps in Chicago", obsTime.getFullYear())
+    // var lowWeird = makeHist("minGraphWrapper", todayLow, minTemps, " lows in Chicago", "min", past)
+
+    // make weird statement
+    // if (lowWeird || highWeird) {
+    if (highWeird) {
+      d3.selectAll("#weird").text("YES")
+      // if (lowWeird && highWeird) {
+      //   "Today's high of "
+      // } else {
+      //
+      // }
+      // d3.selectAll("#sentence").text("The weather in Chicago is not weird.")
+    } else {
+      d3.selectAll("#weird").text("NO")
+      d3.selectAll("#sentence").text("The weather in Chicago is not weird.")
+    }
+  });
 })
-
-// // Docs at http://simpleweatherjs.com
-// $(document).ready(function() {
-//   $.simpleWeather({
-//     location: 'Chicago, IL',
-//     woeid: '',
-//     unit: 'f',
-//     success: function(weather) {
-
-//
-//     },
-//     error: function(error) {
-//       $("#weather").html('<p>'+error+'</p>');
-//     }
-//   });
-// });
-
-
-
-// var past = gon.past //
-// var past = d3.range(50).map(function(d) { return {
-//   year: 1967 + d,
-//   max: 32 + 1.8 * (d3.random.bates(10)() * 21 + 20),
-//   min: 32 + 1.8 * (d3.random.bates(10)() * 19 + 20)
-// }});
-// var maxTemps = d3.range(50).map(function() { return 32 + 1.8 * (d3.random.bates(10)() * 20 + 20) });
-// var minTemps = d3.range(50).map(function() { return 32 + 1.8 * (d3.random.bates(10)() * 20 + 20) });
-// var years = d3.range(50).map(function() { return })
 
 data = 3
 
-var makeHist = function(wrapperId, value, temps, title, key, past) {
-    // A formatter for counts.
-    var formatCount = d3.format(",.0f");
+var makeHist = function(wrapperId, obs, past, title, trueYear) {
+  var pastTemps = past.map(function(d) { return d.temp })
+  // A formatter for counts.
+  var formatCount = d3.format(",.0f");
 
-    var margin = {top: 60, right: 30, bottom: 30, left: 30},
-        width = parseInt(d3.select("#" + wrapperId).style("width")) - margin.left - margin.right,
-        height = 300 - margin.top - margin.bottom;
-        
-        
-    var x_with_value = d3.scaleLinear()
-        .domain([Math.floor(d3.extent(temps.concat(value))[0]), Math.ceil(d3.extent(temps.concat(value))[1])])
-        .range([0, width]);
+  var margin = {top: 60, right: 30, bottom: 30, left: 30},
+    width = parseInt(d3.select("#" + wrapperId).style("width")) - margin.left - margin.right,
+    height = 300 - margin.top - margin.bottom;
+  
+  var x_with_value = d3.scaleLinear()
+    .domain([Math.floor(d3.extent(pastTemps.concat(obs))[0]), Math.ceil(d3.extent(pastTemps.concat(obs))[1])])
+    .range([0, width]);
 
     // Generate a histogram using twenty uniformly-spaced bins.
     var tickNum = 15
     var data = d3.histogram()
-        .value(function(d) {return d[key]})
+        .value(function(d) {return d.temp})
         .thresholds(x_with_value.ticks(tickNum))
         (past);
         
@@ -118,14 +85,14 @@ var makeHist = function(wrapperId, value, temps, title, key, past) {
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
     svg.append("line")
-        .attr("x1", x(value))
+        .attr("x1", x(obs))
         .attr("y1", -10)
-        .attr("x2", x(value))
+        .attr("x2", x(obs))
         .attr("y2", height)
         .attr("stroke-width", 2)
         .attr("opacity", 0.5)
         .attr("stroke", "black");
-
+        
     svg.selectAll("rect")
       .data(data)
     .enter().append("rect")
@@ -135,21 +102,19 @@ var makeHist = function(wrapperId, value, temps, title, key, past) {
       .attr("width", function(d) { return x(d.x1) - x(d.x0) -1 ; })
       .attr("height", function(d) { return height - y(d.length); });
 
-    // data.forEach(function(d,i) {
-    //     d = d.sort(function(e,f) { return f.year - e.year})
-    //     d.forEach(function(j,k) {
-    //         svg.append("text")
-    //         .attr("dy", ".75em")
-    //         .attr("y", 5 + y(d.length) + k * 10)
-    //         .attr("x", x(d.x) + x(data[0].dx + x.domain()[0]) / 2)
-    //         .attr("text-anchor", "middle")
-    //         // .attr("fill", "white")
-    //         // .attr("stroke", "white")
-    //         .text(j.year);
-    //     })
-    // })
-
-        
+    data.forEach(function(d,i) {
+        d = d.sort(function(e,f) { return f.year - e.year})
+        d.forEach(function(j,k) {
+            svg.append("text")
+            .attr("dy", ".75em")
+            .attr("y", 5 + y(d.length) + k * 10)
+            .attr("x", x(d.x0) + (x(d.x1) - x(d.x0)) / 2)
+            .attr("text-anchor", "middle")
+            // .attr("fill", "white")
+            // .attr("stroke", "white")
+            .text(j.year);
+        })
+    })
 
     // .append("text")
     //     .attr("dy", ".75em")
@@ -163,13 +128,12 @@ var makeHist = function(wrapperId, value, temps, title, key, past) {
         .attr("transform", "translate(0," + height + ")")
         .call(xAxis);
 
-
     svg.append("text")
         .attr("dy", ".75em")
         .attr("y", -20)
-        .attr("x", x(value))
+        .attr("x", x(obs))
         .attr("text-anchor", "middle")
-        .text("2018");
+        .text(trueYear);
 
     svg.append("text")
         .attr("dy", "2em")
@@ -179,7 +143,7 @@ var makeHist = function(wrapperId, value, temps, title, key, past) {
         .style("font-size", "20px")
         .text(Date().substring(4,10) + title);
     
-  return isweird(temps,value)
+  return isweird(pastTemps,obs)
 }
 
 var isweird = function(vs,value) {
@@ -196,6 +160,7 @@ var isweird = function(vs,value) {
     }
   }
 }
+
 
 // function drawLine(data) {
 //   var svgWidth =
