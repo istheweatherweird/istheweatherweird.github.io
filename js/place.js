@@ -57,6 +57,8 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
   var x_with_value = d3.scaleLinear()
     .domain([Math.floor(d3.extent(pastTemps.concat(obs))[0]), Math.ceil(d3.extent(pastTemps.concat(obs))[1])])
     .range([0, width]);
+    
+
 
     // Generate a histogram using twenty uniformly-spaced bins.
     if (phone) {
@@ -67,7 +69,14 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
     var data = d3.histogram()
         .value(function(d) {return d.temp})
         .thresholds(x_with_value.ticks(tickNum))
-        (past);
+        (past.concat({temp: obs, year: obsTime.getUTCFullYear()}));
+        
+    data = data.map(function(ar) {
+      var tempAr = ar.filter(function(yr) { return yr.year != obsTime.getUTCFullYear() })
+      tempAr.x0 = ar.x0
+      tempAr.x1 = ar.x1
+      return tempAr
+    })
         
     data[0].x0 = data[0].x1-(data[1].x1 - data[0].x1)
     data[data.length-1].x1 = data[data.length-1].x0+(data[1].x1 - data[0].x1)
@@ -176,7 +185,11 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
   if (!typical && !record) {
     sentence += " temperatures"
   }
-  sentence += " in " + place + " since " + past[0].year + "."
+  sentence += " in " + place
+  if (record) {
+    sentence += " on record"
+  }
+  sentence +=  " since " + past[0].year + "."
   return sentence
 }
 
