@@ -34,8 +34,7 @@ d3.json(observationUrl).then(function(response) {
   }).then(function(past) {
     // make histograms
     var sentence = makeHist("graphWrapper", obsTemp, past, obsTime)
-    d3.selectAll("#weird").text(sentence)
-    // d3.selectAll("#sentence").text("The weather in Chicago is not weird.")
+    d3.selectAll("#weird").html(sentence)
   });
 })
 
@@ -162,22 +161,22 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
   var typical = false
   var record = false
   if ((perc >= 25) && (perc <= 75)) {
-    sentence += "typical for "
+    sentence += "<span class='itww-typical'>typical</span> for "
     typical = true
   } else {
     if (perc > 75) {
       if (perc == 100) {
-        sentence += "the hottest "
+        sentence += "the <span class='itww-hottest'>hottest</span> "
         record = true
       } else {
-        sentence += "warmer than " + Math.floor(perc / 5)*5 + "% of "
+        sentence += "<span class='itww-warmer'>warmer</span> than " + Math.floor(perc / 5)*5 + "% of "
       }
     } else {
       if (perc == 0) {
-        sentence += "the coldest "
+        sentence += "the <span class='itww-coldest'>coldest</span> "
         record = true
       } else {
-        sentence += "colder than " + Math.floor((100-perc) / 5)*5 + "% of "
+        sentence += "<span class='itww-colder'>colder</span> than " + Math.floor((100-perc) / 5)*5 + "% of "
       }
     }
   }

@@ -56,3 +56,24 @@ rect.bar {
 #currentYear text {
   font: 20px sans-serif;  
 }
+
+.itww-typical {
+    color: green
+}
+
+.itww-warmer {
+    color: tomato
+}
+
+.itww-warmest {
+    color: red
+}
+
+.itww-colder {
+    color: lightblue
+}
+
+.itww-coldest {
+    color: blue
+}
+
