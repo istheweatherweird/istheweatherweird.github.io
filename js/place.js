@@ -190,23 +190,3 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
   sentence +=  " since " + past[0].year + "."
   return sentence
 }
-
-var isweird = function(vs,value) {
-  var totalYears = vs.length
-  above = vs.filter(d => d > value).length / totalYears
-  below = vs.filter(d => d < value).length / totalYears
-  if (above < .1) {
-    return "warm"
-  } else {
-    if (below < .1) {
-      return "cold"
-    } else {
-      return false
-    }
-  }
-}
-
-
-// function drawLine(data) {
-//   var svgWidth =
-// }
