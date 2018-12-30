@@ -47,19 +47,17 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
 
   var margin = {top: 60, right: 30, bottom: 30, left: 30}
 
- var width = parseInt(d3.select("#" + wrapperId).style("width")) - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
-    if (phone) {
-      height -= 100
-    }
+  var width = parseInt(d3.select("#" + wrapperId).style("width")) - margin.left - margin.right,
+  height = 500 - margin.top - margin.bottom;
+  if (phone) {
+    height -= 100
+  }
   
   var x_with_value = d3.scaleLinear()
     .domain([Math.floor(d3.extent(pastTemps.concat(obs))[0]), Math.ceil(d3.extent(pastTemps.concat(obs))[1])])
     .range([0, width]);
     
-
-
-    // Generate a histogram using twenty uniformly-spaced bins.
+    // Generate a histogram using uniformly-spaced bins.
     if (phone) {
       var tickNum = 8
     } else {
@@ -160,6 +158,7 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
   var perc = (pastTemps.filter(d => d < obs).length / totalYears) * 100
   var typical = false
   var record = false
+
   if ((perc >= 25) && (perc <= 75)) {
     sentence += "<span class='itww-typical'>typical</span> for "
     typical = true
