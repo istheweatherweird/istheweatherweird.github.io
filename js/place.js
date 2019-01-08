@@ -25,7 +25,7 @@ d3.json(observationUrl).then(function(response) {
 
   var obsTemp = response.properties.temperature.value * 1.8 + 32;
 
-  var pastUrl = "https://istheweatherweird.github.io/istheweatherweird-data-hourly/csv/" + placeDict[place].number + "/" + String(obsTime.getUTCMonth()+1).padStart(2,'0') + String(obsTime.getUTCDate()).padStart(2,'0') + ".csv"
+  var pastUrl = "http://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/" + placeDict[place].number + "/" + String(obsTime.getUTCMonth()+1).padStart(2,'0') + String(obsTime.getUTCDate()).padStart(2,'0') + ".csv"
   var obsUTCHour = obsTime.getUTCHours()
   d3.csv(pastUrl,function(d) {
     if (+d.hour == obsUTCHour) {
