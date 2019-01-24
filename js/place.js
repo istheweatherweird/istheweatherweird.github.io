@@ -13,7 +13,11 @@ function getUrlVars() {
 }
 
 console.log(getUrlVars().station)
-var station = getUrlVars().station
+if (getUrlVars().station) {
+  var station = getUrlVars().station  
+} else {
+  var station = "KORD"
+}
 
 
 // var placeDict = {
