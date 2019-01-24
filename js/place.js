@@ -1,6 +1,5 @@
-// Parse CSV
-
-function getUrlVars() {
+// helper for parsing URL
+var getUrlVars = function() {
     var vars = [], hash;
     var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
     for(var i = 0; i < hashes.length; i++)
@@ -12,7 +11,56 @@ function getUrlVars() {
     return vars;
 }
 
-function makePage(obsTime,obsTemp) {
+// var placeDict = {
+//   Chicago: {number: "725300-94846", word: "KORD"},
+//   SF: {number: "724940-23234", word: "KSFO"}
+// }
+// var place = "Chicago"
+var stationDict = {
+  KORD: {number: "725300-94846", place: "Chicago"},
+  KSFO: {number: "724940-23234", place: "San Francisco"}
+}
+
+var getStation = function(place) {
+  var station = null
+  for (var key in stationDict) {
+    if (stationDict[key].place == place) {
+      station = key
+      break
+    }
+  }
+  return station
+}
+
+var lookUpObservations = function(station) {
+  // get the most recent observation
+  d3.json("https://api.weather.gov/stations/"+ station + "/observations/latest").then(function(response) {
+    // if it doesn't have an observation, look further back
+    if (response.properties.temperature.value == null) {
+        d3.json("https://api.weather.gov/stations/"+ station + "/observations").then(function(newResponse) {
+          var obsTime = 0
+          var obsTemp = null
+          for (var i = 0; i < newResponse.features.length; i++) {
+            obsTemp = newResponse.features[i].properties.temperature.value  
+            if (obsTemp != null) {
+              obsTemp = obsTemp  * 1.8 + 32;
+              obsTime = new Date(newResponse.features[i].properties.timestamp)
+              break
+            }
+          }
+          makePage(obsTime,obsTemp,station)
+        })
+    // otherwise, go for it!
+    } else {
+      var obsTime = new Date(response.properties.timestamp)
+      var obsTemp = response.properties.temperature.value * 1.8 + 32;
+      makePage(obsTime,obsTemp,station)
+    }
+  })
+}
+
+// look up static CSV with obs and use it + observed temp to make histogram
+var makePage = function(obsTime,obsTemp,station) {
   // put observation time at nearest hour
   if (obsTime.getMinutes() > 29) {
     obsTime.setTime(obsTime.getTime() + (60*60*1000))
@@ -25,62 +73,13 @@ function makePage(obsTime,obsTemp) {
     };
   }).then(function(past) {
     // make histograms
-    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime)
+    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime, station)
     d3.selectAll("#weird").html(sentence)
   });
 }
 
-if (getUrlVars().station) {
-  var station = getUrlVars().station  
-} else {
-  var station = "KORD"
-}
 
-
-// var placeDict = {
-//   Chicago: {number: "725300-94846", word: "KORD"},
-//   SF: {number: "724940-23234", word: "KSFO"}
-// }
-// var place = "Chicago"
-var stationDict = {
-  KORD: {number: "725300-94846", place: "Chicago"},
-  KSFO: {number: "724940-23234", place: "San Francisco"}
-}
-
-var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
-
-if (phone) {
-  $("#weird").css("font-size","30px")
-}
-
-// get the most recent observation
-d3.json("https://api.weather.gov/stations/"+ station + "/observations/latest").then(function(response) {
-  // if it doesn't have an observation, look further back
-  if (response.properties.temperature.value == null) {
-      d3.json("https://api.weather.gov/stations/"+ station + "/observations").then(function(newResponse) {
-        var obsTime = 0
-        var obsTemp = null
-        for (var i = 0; i < newResponse.features.length; i++) {
-          obsTemp = newResponse.features[i].properties.temperature.value  
-          if (obsTemp != null) {
-            obsTemp = obsTemp  * 1.8 + 32;
-            obsTime = new Date(newResponse.features[i].properties.timestamp)
-            break
-          }
-        }
-        makePage(obsTime,obsTemp)
-      })
-  // otherwise, go for it!
-  } else {
-    var obsTime = new Date(response.properties.timestamp)
-    var obsTemp = response.properties.temperature.value * 1.8 + 32;
-    makePage(obsTime,obsTemp)
-  }
-})
-
-data = 3
-
-var makeHist = function(wrapperId, obs, past, obsTime) {
+var makeHist = function(wrapperId, obs, past, obsTime, station) {
   var pastTemps = past.map(function(d) { return d.temp })
   // A formatter for counts.
   var formatCount = d3.format(",.0f");
@@ -238,4 +237,31 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
   }
   sentence +=  " since " + past[0].year + "."
   return sentence
+}
+
+var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+
+if (phone) {
+  $("#weird").css("font-size","30px")
+}
+
+
+// if a station is specified, use it. otherwise, try to figure out where the user is
+if (getUrlVars().station) {
+  lookUpObservations(getUrlVars().station)
+} else {
+  var onSuccess = function(geoipResponse) {
+    station = getStation(geoipResponse.city.names.en)
+    if (station == null) {
+      lookUpObservations("KORD")
+    } else {
+      lookUpObservations(station)      
+    }
+  };
+
+  /* If we get an error we will */
+  var onError = function (error) {
+    lookUpObservations("KORD")
+  };
+  geoip2.city( onSuccess, onError );
 }
