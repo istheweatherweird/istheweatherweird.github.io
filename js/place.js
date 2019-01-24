@@ -12,7 +12,24 @@ function getUrlVars() {
     return vars;
 }
 
-console.log(getUrlVars().station)
+function makePage(obsTime,obsTemp) {
+  // put observation time at nearest hour
+  if (obsTime.getMinutes() > 29) {
+    obsTime.setTime(obsTime.getTime() + (60*60*1000))
+  }
+  var pastUrl = "http://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/" + stationDict[station].number + "/" + String(obsTime.getUTCMonth()+1).padStart(2,'0') + String(obsTime.getUTCDate()).padStart(2,'0') + ".csv"
+  var obsUTCHour = obsTime.getUTCHours()
+  d3.csv(pastUrl,function(d) {
+    if (+d.hour == obsUTCHour) {
+      return {year: +d.year, temp: 32 + (+d.temp) * 0.18}
+    };
+  }).then(function(past) {
+    // make histograms
+    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime)
+    d3.selectAll("#weird").html(sentence)
+  });
+}
+
 if (getUrlVars().station) {
   var station = getUrlVars().station  
 } else {
@@ -30,35 +47,35 @@ var stationDict = {
   KSFO: {number: "724940-23234", place: "San Francisco"}
 }
 
-var observationUrl = "https://api.weather.gov/stations/"+ station + "/observations/latest"
-
 var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
 
 if (phone) {
   $("#weird").css("font-size","30px")
 }
 
-d3.json(observationUrl).then(function(response) {
-  var obsTime = new Date(response.properties.timestamp)
-  console.log(response.properties.timestamp)
-  // put observation time at nearest hour
-  if (obsTime.getMinutes() > 29) {
-    obsTime.setTime(obsTime.getTime() + (60*60*1000))
+// get the most recent observation
+d3.json("https://api.weather.gov/stations/"+ station + "/observations/latest").then(function(response) {
+  // if it doesn't have an observation, look further back
+  if (response.properties.temperature.value == null) {
+      d3.json("https://api.weather.gov/stations/"+ station + "/observations").then(function(newResponse) {
+        var obsTime = 0
+        var obsTemp = null
+        for (var i = 0; i < newResponse.features.length; i++) {
+          obsTemp = newResponse.features[i].properties.temperature.value  
+          if (obsTemp != null) {
+            obsTemp = obsTemp  * 1.8 + 32;
+            obsTime = new Date(newResponse.features[i].properties.timestamp)
+            break
+          }
+        }
+        makePage(obsTime,obsTemp)
+      })
+  // otherwise, go for it!
+  } else {
+    var obsTime = new Date(response.properties.timestamp)
+    var obsTemp = response.properties.temperature.value * 1.8 + 32;
+    makePage(obsTime,obsTemp)
   }
-
-  var obsTemp = response.properties.temperature.value * 1.8 + 32;
-
-  var pastUrl = "http://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/" + stationDict[station].number + "/" + String(obsTime.getUTCMonth()+1).padStart(2,'0') + String(obsTime.getUTCDate()).padStart(2,'0') + ".csv"
-  var obsUTCHour = obsTime.getUTCHours()
-  d3.csv(pastUrl,function(d) {
-    if (+d.hour == obsUTCHour) {
-      return {year: +d.year, temp: 32 + (+d.temp) * 0.18}
-    };
-  }).then(function(past) {
-    // make histograms
-    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime)
-    d3.selectAll("#weird").html(sentence)
-  });
 })
 
 data = 3
