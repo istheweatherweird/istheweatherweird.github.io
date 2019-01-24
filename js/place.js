@@ -1,13 +1,32 @@
 // Parse CSV
 
-// get date
-var placeDict = {
-  Chicago: {number: "725300-94846", word: "KORD"},
-  SF: {number: "724940-23234", word: "KSFO"}
+function getUrlVars() {
+    var vars = [], hash;
+    var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+    for(var i = 0; i < hashes.length; i++)
+    {
+        hash = hashes[i].split('=');
+        vars.push(hash[0]);
+        vars[hash[0]] = hash[1];
+    }
+    return vars;
 }
-var place = "Chicago"
 
-var observationUrl = "https://api.weather.gov/stations/"+ placeDict[place].word + "/observations/latest"
+console.log(getUrlVars().station)
+var station = getUrlVars().station
+
+
+// var placeDict = {
+//   Chicago: {number: "725300-94846", word: "KORD"},
+//   SF: {number: "724940-23234", word: "KSFO"}
+// }
+// var place = "Chicago"
+var stationDict = {
+  KORD: {number: "725300-94846", place: "Chicago"},
+  KSFO: {number: "724940-23234", place: "San Francisco"}
+}
+
+var observationUrl = "https://api.weather.gov/stations/"+ station + "/observations/latest"
 
 var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
 
@@ -25,7 +44,7 @@ d3.json(observationUrl).then(function(response) {
 
   var obsTemp = response.properties.temperature.value * 1.8 + 32;
 
-  var pastUrl = "http://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/" + placeDict[place].number + "/" + String(obsTime.getUTCMonth()+1).padStart(2,'0') + String(obsTime.getUTCDate()).padStart(2,'0') + ".csv"
+  var pastUrl = "http://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/" + stationDict[station].number + "/" + String(obsTime.getUTCMonth()+1).padStart(2,'0') + String(obsTime.getUTCDate()).padStart(2,'0') + ".csv"
   var obsUTCHour = obsTime.getUTCHours()
   d3.csv(pastUrl,function(d) {
     if (+d.hour == obsUTCHour) {
@@ -183,7 +202,16 @@ var makeHist = function(wrapperId, obs, past, obsTime) {
   if (!typical && !record) {
     sentence += " temperatures"
   }
-  sentence += " in " + place
+  sentence += " in <div class='dropdown div-inline'><button class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + stationDict[station].place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
+  for (var key in stationDict) {
+    sentence += "<a class='dropdown-item"
+    if (key == station) {
+      sentence += " active"
+    }
+    sentence += "' href='/?station=" + key + "'>" + stationDict[key].place + "</a>"
+  }
+  
+  sentence += "</div></div>"
   if (record) {
     sentence += " on record"
   }
