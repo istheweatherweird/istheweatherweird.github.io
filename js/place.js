@@ -263,5 +263,11 @@ if (getUrlVars().station) {
   var onError = function (error) {
     lookUpObservations("KORD")
   };
-  geoip2.city( onSuccess, onError );
+
+  // this try is in case geoip2 didn't load, e.g. it was blocked by a browser privacy extension
+  try { 
+    geoip2.city( onSuccess, onError );
+  } catch(err) {
+    onError()
+  }
 }
