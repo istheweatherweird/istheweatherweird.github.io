@@ -98,8 +98,13 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
     .domain([Math.floor(tempExtent[0]),
              Math.ceil(tempExtent[1])])
     .range([0, width]);
-    
+   
     var tickNum = d3.thresholdFreedmanDiaconis(allTemps, tempExtent[0], tempExtent[1])
+    // no more than 8 bins on mobile
+    if (phone) {
+      tickNum = Math.min(tickNum, 8)
+    }
+
     console.log(tickNum)
     var data = d3.histogram()
         .value(function(d) {return d.temp})
