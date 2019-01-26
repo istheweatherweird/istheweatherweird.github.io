@@ -1,3 +1,6 @@
+var MOBILE_BINS_MAX = 8
+var DESKTOP_BINS_MIN = 12
+
 // helper for parsing URL
 var getUrlVars = function() {
     var vars = [], hash;
@@ -94,21 +97,23 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
   var allTemps = pastTemps.concat(obs)
   var tempExtent = d3.extent(allTemps)
 
-  var x_with_value = d3.scaleLinear()
+  x_with_value = d3.scaleLinear()
     .domain([Math.floor(tempExtent[0]),
              Math.ceil(tempExtent[1])])
     .range([0, width]);
    
     var tickNum = d3.thresholdFreedmanDiaconis(allTemps, tempExtent[0], tempExtent[1])
-    // no more than 8 bins on mobile
     if (phone) {
-      tickNum = Math.min(tickNum, 8)
+      tickNum = Math.min(tickNum, MOBILE_BINS_MAX)
+    } else {
+      tickNum = Math.max(tickNum, DESKTOP_BINS_MIN)
     }
 
     console.log(tickNum)
+    var ticks = x_with_value.ticks(tickNum)
     var data = d3.histogram()
         .value(function(d) {return d.temp})
-        .thresholds(x_with_value.ticks(tickNum))
+        .thresholds(ticks)
         (past.concat({temp: obs, year: obsTime.getUTCFullYear()}));
         
     data = data.map(function(ar) {
@@ -129,10 +134,29 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
         .domain([0, d3.max(data, function(d) { return d.length; })])
         .range([height, 0]);
 
+    // index of last bin for adding dF to label
+    var last_label_i = ticks.length + 1
+    // ticks.length + 2 is the numer of ticks
+    var phone_cull = phone && (ticks.length + 2 > MOBILE_BINS_MAX)
+    // when number of ticks is even and we've culled, last tick is unlabeled
+    if (phone_cull && ticks.length % 2 == 0) {
+        last_label_i -= 1
+    }
     var xAxis = d3.axisBottom()
         .scale(x)
         .ticks(data.length+1)
-        .tickFormat(function(d) {return d + (phone ? "" : "F") });
+        .tickFormat(function(d, i) {
+            var label = ""
+            label += d
+            if (phone_cull && i % 2 != 0) {
+                label = ""
+            }
+
+            if (i == last_label_i) {
+                label += "ºF"
+            }
+            return label
+        });
 
     var svg = d3.select("#" + wrapperId).append("svg")
         .attr("width", width + margin.left + margin.right)
