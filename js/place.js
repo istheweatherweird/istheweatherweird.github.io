@@ -11,14 +11,13 @@ var getUrlVars = function() {
     return vars;
 }
 
-// var placeDict = {
-//   Chicago: {number: "725300-94846", word: "KORD"},
-//   SF: {number: "724940-23234", word: "KSFO"}
-// }
-// var place = "Chicago"
 var stationDict = {
   KORD: {number: "725300-94846", place: "Chicago"},
-  KSFO: {number: "724940-23234", place: "San Francisco"}
+  KSFO: {number: "724940-23234", place: "San Francisco"},
+  KJFK: {number: "744860-94789", place: "New York City"},
+  KOKC: {number: "723530-13967", place: "Oklahoma City"},
+  KMKE: {number: "726400-14839", place: "Milwaukee"},
+  KPIT: {number: "725200-94823", place: "Pittsburgh"}
 }
 
 var getStation = function(place) {
