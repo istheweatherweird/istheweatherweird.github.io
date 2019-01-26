@@ -90,17 +90,17 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
   if (phone) {
     height -= 100
   }
-  
+ 
+  var allTemps = pastTemps.concat(obs)
+  var tempExtent = d3.extent(allTemps)
+
   var x_with_value = d3.scaleLinear()
-    .domain([Math.floor(d3.extent(pastTemps.concat(obs))[0]), Math.ceil(d3.extent(pastTemps.concat(obs))[1])])
+    .domain([Math.floor(tempExtent[0]),
+             Math.ceil(tempExtent[1])])
     .range([0, width]);
     
-    // Generate a histogram using uniformly-spaced bins.
-    if (phone) {
-      var tickNum = 8
-    } else {
-      var tickNum = 15      
-    }
+    var tickNum = d3.thresholdFreedmanDiaconis(allTemps, tempExtent[0], tempExtent[1])
+    console.log(tickNum)
     var data = d3.histogram()
         .value(function(d) {return d.temp})
         .thresholds(x_with_value.ticks(tickNum))
@@ -127,7 +127,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
     var xAxis = d3.axisBottom()
         .scale(x)
         .ticks(data.length+1)
-        .tickFormat(function(d) {return d+"F"});
+        .tickFormat(function(d) {return d + (phone ? "" : "F") });
 
     var svg = d3.select("#" + wrapperId).append("svg")
         .attr("width", width + margin.left + margin.right)
