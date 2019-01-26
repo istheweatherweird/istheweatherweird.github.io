@@ -77,6 +77,12 @@ var makePage = function(obsTime,obsTemp,station) {
     // make histograms
     var sentence = makeHist("graphWrapper", obsTemp, past, obsTime, station)
     d3.selectAll("#weird").html(sentence)
+
+    if (phone) {
+      $("#weird").css("font-size","30px")
+      $('#itww-place-button').css("font-size", "30px")
+    }
+
   });
 }
 
@@ -250,7 +256,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
   if (!typical && !record) {
     sentence += " temperatures"
   }
-  sentence += " in <div class='dropdown div-inline'><button class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + stationDict[station].place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
+  sentence += " in <div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + stationDict[station].place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
   for (var key in stationDict) {
     sentence += "<a class='dropdown-item"
     if (key == station) {
@@ -268,10 +274,6 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
 }
 
 var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
-
-if (phone) {
-  $("#weird").css("font-size","30px")
-}
 
 
 // if a station is specified, use it. otherwise, try to figure out where the user is
