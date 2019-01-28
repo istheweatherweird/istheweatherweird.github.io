@@ -95,12 +95,8 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
 
   var margin = {top: 60, right: 30, bottom: 30, left: 30}
 
-  var width = parseInt(d3.select("#" + wrapperId).style("width")) - margin.left - margin.right,
-  height = 500 - margin.top - margin.bottom;
-  if (phone) {
-    height -= 100
-  }
- 
+  var width = parseInt(d3.select("#" + wrapperId).style("width")) - margin.left - margin.right
+
   var allTemps = pastTemps.concat(obs)
   var tempExtent = d3.extent(allTemps)
 
@@ -136,8 +132,17 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
         // .domain(d3.extent(x_with_value.ticks(tickNum)))
         .range([0,width]);
 
+    // the maximum number of observations in a bin
+    maxFreq = d3.max(data, function(d) { return d.length; })
+    if (phone) {
+      var height = 350 - margin.top - margin.bottom
+    } else {
+      // on dekstop height is maxFreq * 24 to make room for years text
+      var height = maxFreq * 24
+    }
+
     var y = d3.scaleLinear()
-        .domain([0, d3.max(data, function(d) { return d.length; })])
+        .domain([0, maxFreq])
         .range([height, 0]);
 
     // index of last tick for adding dF to label
@@ -196,20 +201,13 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
                 .attr("y", 5 + y(d.length) + k * 24)
                 .attr("x", x(d.x0) + (x(d.x1) - x(d.x0)) / 2)
                 .attr("text-anchor", "middle")
-                // .attr("fill", "white")
-                // .attr("stroke", "white")
+                //.attr("fill", "white")
+                //.attr("stroke", "white")
                 .text(j.year);
             })
         })
         
       }
-
-    // .append("text")
-    //     .attr("dy", ".75em")
-    //     .attr("y", 6)
-    //     .attr("x", x(data[0].dx + x.domain()[0]) / 2)
-    //     .attr("text-anchor", "middle")
-    //     .text(function(d) { return formatCount(d.y); });
 
     svg.append("g")
         .attr("class", "x axis")
