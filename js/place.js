@@ -16,12 +16,12 @@ var getUrlVars = function() {
     return vars;
 }
 
-var getNearestStation = function(geoipResponse, placeMap) {
+var getNearestStation = function(geoip, placeMap) {
     placeMap.each(function(value, key) {
         // return the place closest to the geoipResponse
         value.distance = distance(
-            geoipResponse.location.latitude,
-            geoipResponse.location.longitude,
+            geoip.latitude,
+            geoip.longitude,
             +value.LAT,
             +value.LON)
     });
@@ -290,21 +290,11 @@ d3.csv(stations_url).then(function(data) {
             onError()
         }
     } else {
-        var onSuccess = function(geoipResponse) {
-            place = getNearestStation(geoipResponse, placeMap)
-            if (place == null) {
-                lookUpObservations(placeMap.get(DEFAULT_STATION))
-            } else {
-                lookUpObservations(place)
-            }
-        };
-
-  // this try is in case geoip2 didn't load, e.g. it was blocked by a browser privacy extension
-  try { 
-    geoip2.city( onSuccess, onError );
-  } catch(err) {
-    onError()
-  }
-}
-
+        $.getJSON("https://get.geojs.io/v1/ip/geo.json", function(geoip) {
+            place = getNearestStation(geoip, placeMap)
+            lookUpObservations(place)
+        }).fail(function() {
+            onError()
+        })
+    }
 });
