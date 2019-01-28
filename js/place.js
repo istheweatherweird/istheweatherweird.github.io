@@ -115,7 +115,6 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
       tickNum = Math.max(tickNum, DESKTOP_BINS_MIN)
     }
 
-    console.log(tickNum)
     var ticks = x_with_value.ticks(tickNum)
     var data = d3.histogram()
         .value(function(d) {return d.temp})
@@ -140,12 +139,11 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
         .domain([0, d3.max(data, function(d) { return d.length; })])
         .range([height, 0]);
 
-    // index of last bin for adding dF to label
-    var last_label_i = ticks.length + 1
-    // ticks.length + 2 is the numer of ticks
-    var phone_cull = phone && (ticks.length + 2 > MOBILE_BINS_MAX)
-    // when number of ticks is even and we've culled, last tick is unlabeled
-    if (phone_cull && ticks.length % 2 == 0) {
+    // index of last tick for adding dF to label
+    var last_label_i = data.length
+    var phone_cull = phone && (data.length > MOBILE_BINS_MAX)
+    // when number of bins is even and we've culled, last tick is unlabeled
+    if (phone_cull && data.length % 2 == 1) {
         last_label_i -= 1
     }
     var xAxis = d3.axisBottom()
