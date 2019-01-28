@@ -16,10 +16,12 @@ var getUrlVars = function() {
 
 var stationDict = {
   KORD: {number: "725300-94846", place: "Chicago"},
+  KIAH: {number: "722430-12960", place: "Houston"},
   KLAX: {number: "722950-23174", place: "Los Angeles"},
   KJFK: {number: "744860-94789", place: "New York City"},
   KMKE: {number: "726400-14839", place: "Milwaukee"},
   KOKC: {number: "723530-13967", place: "Oklahoma City"},
+  KPHX: {number: "722780-23183", place: "Phoenix"},
   KPIT: {number: "725200-94823", place: "Pittsburgh"},
   KSFO: {number: "724940-23234", place: "San Francisco"},
   KIAD: {number: "724030-93738", place: "Washington DC"}
