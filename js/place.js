@@ -17,18 +17,19 @@ var getUrlVars = function() {
 }
 
 var getNearestStation = function(geoip, placeMap) {
+
     placeMap.each(function(value, key) {
         // return the place closest to the geoipResponse
         value.distance = distance(
-            geoip.latitude,
-            geoip.longitude,
+            +geoip.latitude,
+            +geoip.longitude,
             +value.LAT,
             +value.LON)
     });
-
+    
     return d3.entries(placeMap)
         .sort(function(a, b) {
-            return d3.ascending(a.distance, b.distance); })[0].value;
+            return d3.ascending(a.value.distance, b.value.distance); })[0].value;
 }
 
 var lookUpObservations = function(place) {
@@ -268,9 +269,6 @@ var makeHist = function(wrapperId, obs, past, obsTime, place) {
 }
 
 var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
-
-
-// if a station is specified, use it. otherwise, try to figure out where the user is
 
 
 var stations_url = DATA_URL + "/csv/stations.csv"
