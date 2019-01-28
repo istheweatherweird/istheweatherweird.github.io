@@ -1,4 +1,4 @@
-var MOBILE_BINS_MAX = 8
+var MOBILE_BINS_MAX = 6
 var DESKTOP_BINS_MIN = 8
 
 // helper for parsing URL
