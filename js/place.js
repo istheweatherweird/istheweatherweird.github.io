@@ -16,6 +16,7 @@ var getUrlVars = function() {
 
 var stationDict = {
   KORD: {number: "725300-94846", place: "Chicago"},
+  KLAX: {number: "722950-23174", place: "Los Angeles"},
   KJFK: {number: "744860-94789", place: "New York City"},
   KMKE: {number: "726400-14839", place: "Milwaukee"},
   KOKC: {number: "723530-13967", place: "Oklahoma City"},
