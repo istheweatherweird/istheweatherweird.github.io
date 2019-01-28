@@ -1,5 +1,6 @@
 var MOBILE_BINS_MAX = 6
 var DESKTOP_BINS_MIN = 8
+var DEFAULT_STATION = "KORD"
 
 // helper for parsing URL
 var getUrlVars = function() {
@@ -283,7 +284,7 @@ if (getUrlVars().station) {
   var onSuccess = function(geoipResponse) {
     station = getStation(geoipResponse.city.names.en)
     if (station == null) {
-      lookUpObservations("KORD")
+      lookUpObservations(DEFAULT_STATION)
     } else {
       lookUpObservations(station)      
     }
@@ -291,7 +292,7 @@ if (getUrlVars().station) {
 
   /* If we get an error we will */
   var onError = function (error) {
-    lookUpObservations("KORD")
+    lookUpObservations(DEFAULT_STATION)
   };
 
   // this try is in case geoip2 didn't load, e.g. it was blocked by a browser privacy extension
