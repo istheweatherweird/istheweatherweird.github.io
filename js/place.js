@@ -1,6 +1,7 @@
 var MOBILE_BINS_MAX = 6
 var DESKTOP_BINS_MIN = 8
 var DEFAULT_STATION = "KORD"
+var DATA_URL = "http://www.istheweatherweird.com/istheweatherweird-data-hourly"
 
 // helper for parsing URL
 var getUrlVars = function() {
@@ -15,36 +16,27 @@ var getUrlVars = function() {
     return vars;
 }
 
-var stationDict = {
-  KORD: {number: "725300-94846", place: "Chicago"},
-  KIAH: {number: "722430-12960", place: "Houston"},
-  KLAX: {number: "722950-23174", place: "Los Angeles"},
-  KJFK: {number: "744860-94789", place: "New York City"},
-  KMKE: {number: "726400-14839", place: "Milwaukee"},
-  KOKC: {number: "723530-13967", place: "Oklahoma City"},
-  KPHX: {number: "722780-23183", place: "Phoenix"},
-  KPIT: {number: "725200-94823", place: "Pittsburgh"},
-  KSFO: {number: "724940-23234", place: "San Francisco"},
-  KIAD: {number: "724030-93738", place: "Washington DC"}
+var getNearestStation = function(geoipResponse, placeMap) {
+    placeMap.each(function(value, key) {
+        // return the place closest to the geoipResponse
+        value.distance = distance(
+            geoipResponse.location.latitude,
+            geoipResponse.location.longitude,
+            +value.LAT,
+            +value.LON)
+    });
+
+    return d3.entries(placeMap)
+        .sort(function(a, b) {
+            return d3.ascending(a.distance, b.distance); })[0].value;
 }
 
-var getStation = function(place) {
-  var station = null
-  for (var key in stationDict) {
-    if (stationDict[key].place == place) {
-      station = key
-      break
-    }
-  }
-  return station
-}
-
-var lookUpObservations = function(station) {
+var lookUpObservations = function(place) {
   // get the most recent observation
-  d3.json("https://api.weather.gov/stations/"+ station + "/observations/latest").then(function(response) {
+  d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations/latest").then(function(response) {
     // if it doesn't have an observation, look further back
     if (response.properties.temperature.value == null) {
-        d3.json("https://api.weather.gov/stations/"+ station + "/observations").then(function(newResponse) {
+        d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations").then(function(newResponse) {
           var obsTime = 0
           var obsTemp = null
           for (var i = 0; i < newResponse.features.length; i++) {
@@ -55,24 +47,25 @@ var lookUpObservations = function(station) {
               break
             }
           }
-          makePage(obsTime,obsTemp,station)
+          makePage(obsTime,obsTemp,place)
         })
     // otherwise, go for it!
     } else {
       var obsTime = new Date(response.properties.timestamp)
       var obsTemp = response.properties.temperature.value * 1.8 + 32;
-      makePage(obsTime,obsTemp,station)
+      makePage(obsTime,obsTemp,place)
     }
   })
 }
 
 // look up static CSV with obs and use it + observed temp to make histogram
-var makePage = function(obsTime,obsTemp,station) {
+var makePage = function(obsTime,obsTemp,place) {
   // put observation time at nearest hour
   if (obsTime.getMinutes() > 29) {
     obsTime.setTime(obsTime.getTime() + (60*60*1000))
   }
-  var pastUrl = "http://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/" + stationDict[station].number + "/" + String(obsTime.getUTCMonth()+1).padStart(2,'0') + String(obsTime.getUTCDate()).padStart(2,'0') + ".csv"
+  id = place.USAF + "-" + place.WBAN
+  var pastUrl = DATA_URL + "/csv/" + id + "/" + String(obsTime.getUTCMonth()+1).padStart(2,'0') + String(obsTime.getUTCDate()).padStart(2,'0') + ".csv"
   var obsUTCHour = obsTime.getUTCHours()
   d3.csv(pastUrl,function(d) {
     if (+d.hour == obsUTCHour) {
@@ -80,7 +73,7 @@ var makePage = function(obsTime,obsTemp,station) {
     };
   }).then(function(past) {
     // make histograms
-    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime, station)
+    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime, place)
     d3.selectAll("#weird").html(sentence)
 
     if (phone) {
@@ -92,7 +85,7 @@ var makePage = function(obsTime,obsTemp,station) {
 }
 
 
-var makeHist = function(wrapperId, obs, past, obsTime, station) {
+var makeHist = function(wrapperId, obs, past, obsTime, place) {
   var pastTemps = past.map(function(d) { return d.temp })
   // A formatter for counts.
   var formatCount = d3.format(",.0f");
@@ -257,14 +250,14 @@ var makeHist = function(wrapperId, obs, past, obsTime, station) {
   if (!typical && !record) {
     sentence += " temperatures"
   }
-  sentence += " in <div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + stationDict[station].place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
-  for (var key in stationDict) {
+  sentence += " in <div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + place.place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
+  placeMap.each(function(p) {
     sentence += "<a class='dropdown-item"
-    if (key == station) {
+    if (p.ICAO == place.ICAO) {
       sentence += " active"
     }
-    sentence += "' href='/?station=" + key + "'>" + stationDict[key].place + "</a>"
-  }
+    sentence += "' href='/?station=" + p.ICAO + "'>" + p.place + "</a>"
+  });
   
   sentence += "</div></div>"
   if (record) {
@@ -278,22 +271,33 @@ var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.tes
 
 
 // if a station is specified, use it. otherwise, try to figure out where the user is
-if (getUrlVars().station) {
-  lookUpObservations(getUrlVars().station)
-} else {
-  var onSuccess = function(geoipResponse) {
-    station = getStation(geoipResponse.city.names.en)
-    if (station == null) {
-      lookUpObservations(DEFAULT_STATION)
-    } else {
-      lookUpObservations(station)      
-    }
-  };
 
-  /* If we get an error we will */
-  var onError = function (error) {
-    lookUpObservations(DEFAULT_STATION)
-  };
+
+var stations_url = DATA_URL + "/csv/stations.csv"
+d3.csv(stations_url).then(function(data) {
+    placeMap = d3.map(data, function(d) { return d.ICAO })
+    /* If we get an error we will */
+    var onError = function (error) {
+      lookUpObservations(placeMap.get(DEFAULT_STATION))
+    };
+
+    station = getUrlVars().station
+    if (station) {
+        place = placeMap.get(station)
+        if (place) {
+            lookUpObservations(place)
+        } else {
+            onError()
+        }
+    } else {
+        var onSuccess = function(geoipResponse) {
+            place = getNearestStation(geoipResponse, placeMap)
+            if (place == null) {
+                lookUpObservations(placeMap.get(DEFAULT_STATION))
+            } else {
+                lookUpObservations(place)
+            }
+        };
 
   // this try is in case geoip2 didn't load, e.g. it was blocked by a browser privacy extension
   try { 
@@ -302,3 +306,5 @@ if (getUrlVars().station) {
     onError()
   }
 }
+
+});
