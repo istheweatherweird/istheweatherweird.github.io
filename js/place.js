@@ -1,5 +1,5 @@
 var MOBILE_BINS_MAX = 8
-var DESKTOP_BINS_MIN = 12
+var DESKTOP_BINS_MIN = 8
 
 // helper for parsing URL
 var getUrlVars = function() {
@@ -16,11 +16,12 @@ var getUrlVars = function() {
 
 var stationDict = {
   KORD: {number: "725300-94846", place: "Chicago"},
-  KSFO: {number: "724940-23234", place: "San Francisco"},
   KJFK: {number: "744860-94789", place: "New York City"},
-  KOKC: {number: "723530-13967", place: "Oklahoma City"},
   KMKE: {number: "726400-14839", place: "Milwaukee"},
-  KPIT: {number: "725200-94823", place: "Pittsburgh"}
+  KOKC: {number: "723530-13967", place: "Oklahoma City"},
+  KPIT: {number: "725200-94823", place: "Pittsburgh"},
+  KSFO: {number: "724940-23234", place: "San Francisco"},
+  KIAD: {number: "724030-93738", place: "Washington DC"}
 }
 
 var getStation = function(place) {
