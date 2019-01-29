@@ -1,5 +1,5 @@
 var MOBILE_BINS_MAX = 6
-var DESKTOP_BINS_MIN = 8
+var DESKTOP_BINS_MIN = 9
 var DEFAULT_STATION = "KORD"
 var DATA_URL = "http://www.istheweatherweird.com/istheweatherweird-data-hourly"
 
