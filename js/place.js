@@ -247,7 +247,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place) {
       }
     }
   }
-  sentence += obsTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric"})
+  sentence += obsTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
   if (!typical && !record) {
     sentence += " temperatures"
   }
