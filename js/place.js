@@ -1,7 +1,7 @@
 var MOBILE_BINS_MAX = 6
 var DESKTOP_BINS_MIN = 9
 var DEFAULT_STATION = "KORD"
-var DATA_URL = "http://www.istheweatherweird.com/istheweatherweird-data-hourly"
+var DATA_URL = "https://www.istheweatherweird.com/istheweatherweird-data-hourly"
 
 // helper for parsing URL
 var getUrlVars = function() {
