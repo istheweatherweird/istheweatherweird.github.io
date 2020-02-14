@@ -230,9 +230,15 @@ var makeHist = function(wrapperId, obs, past, obsTime, place) {
   percRel = Math.round(percRel, 0)
   
   var weirdness = 0
-  if (percRel >= 75) weirdness = 1
-  if (percRel >= 95) weirdness = 2
-  if (percRel >= 100) weirdness = 3
+  var record = false
+  if (percRel >= 97.5) {
+      weirdness = 3
+      record = true
+  } else if (percRel >= 90) {
+      weirdness = 2
+  } else if (percRel >= 75) {
+      weirdness = 1
+  }
 
   var obsTimeText = obsTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
   var firstYear = past[0].year
@@ -271,11 +277,9 @@ var makeHist = function(wrapperId, obs, past, obsTime, place) {
   
   var sentence1 = `In ${dropdownHtml} it's ${obsRound}ºF, ${weirdnessHtml} for ${obsTimeText}.` 
   var sentence2 = ''
-  /*if (weirdness == 0) {
-    // no second sentence when typical
-  } else*/ if (weirdness < 3) {
+  if (!record) {
     sentence2 += `It's ${compHtml} than ${percRel}% of  temperatures on record.`
-  } else if (weirdness == 3) {
+  } else {
     sentence2 += `It's the ${compHtml} ${obsTimeText} on record.`
   }
   return sentence1 + ' ' + sentence2 + ''
