@@ -220,52 +220,65 @@ var makeHist = function(wrapperId, obs, past, obsTime, place) {
         .attr("text-anchor", "middle")
         .attr("font-size", "24px")
         .text(obsTime.getFullYear());
-        
-  var totalYears = pastTemps.length
-  var sentence = "It's " + Math.round(obs,0) + "ºF, "
-  var perc = (pastTemps.filter(d => d < obs).length / totalYears) * 100
-  var typical = false
-  var record = false
-
-  if ((perc >= 25) && (perc <= 75)) {
-    sentence += "<span class='itww-typical'>typical</span> for "
-    typical = true
-  } else {
-    if (perc > 75) {
-      if (perc == 100) {
-        sentence += "the <span class='itww-hottest'>hottest</span> "
-        record = true
-      } else {
-        sentence += "<span class='itww-warmer'>warmer</span> than " + Math.floor(perc / 5)*5 + "% of "
-      }
-    } else {
-      if (perc == 0) {
-        sentence += "the <span class='itww-coldest'>coldest</span> "
-        record = true
-      } else {
-        sentence += "<span class='itww-colder'>colder</span> than " + Math.floor((100-perc) / 5)*5 + "% of "
-      }
-    }
-  }
-  sentence += obsTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
-  if (!typical && !record) {
-    sentence += " temperatures"
-  }
-  sentence += " in <div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + place.place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
-  placeMap.each(function(p) {
-    sentence += "<a class='dropdown-item"
-    if (p.ICAO == place.ICAO) {
-      sentence += " active"
-    }
-    sentence += "' href='/?station=" + p.ICAO + "'>" + p.place + "</a>"
-  });
   
-  sentence += "</div></div>"
-  if (record) {
-    sentence += " on record"
+  // build the sentence
+  var totalYears = pastTemps.length
+  var perc = (pastTemps.filter(d => d < obs).length / totalYears) * 100
+  
+  var warm = perc >= 50
+  var percRel = warm ? perc : 100 - perc
+  percRel = Math.round(percRel, 0)
+  
+  var weirdness = 0
+  if (percRel >= 75) weirdness = 1
+  if (percRel >= 95) weirdness = 2
+  if (percRel >= 100) weirdness = 3
+
+  var obsTimeText = obsTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
+  var firstYear = past[0].year
+
+  var dropdownHtml = "<div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + place.place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
+  placeMap.each(function(p) {
+    dropdownHtml += "<a class='dropdown-item"
+    if (p.ICAO == place.ICAO) {
+      dropdownHtml += " active"
+    }
+    dropdownHtml += "' href='/?station=" + p.ICAO + "'>" + p.place + "</a>"
+  });
+  dropdownHtml += "</div></div>"
+  
+  var obsRound = Math.round(obs, 0)
+  
+  var weirdnessTexts = [
+    'typical', 
+    'a bit weird',
+    'weird',
+    'very weird'
+  ]
+  var weirdnessText = weirdnessTexts[weirdness]
+
+  var compTexts = [
+    ['colder', 'coldest'],
+    ['warmer', 'warmest']
+  ]
+  // use unary + to convert boolean to integer for indexing
+  var compText = compTexts[+warm][+(weirdness == 3)]
+  
+  var style = weirdness == 0 ? 'typical' : compText
+  var weirdnessHtml = `<span class='itww-${style}'>${weirdnessText}</span>`
+  // only style the comparative if its not typical
+  var compHtml = weirdness == 0 ? compText : `<span class='itww-${style}'>${compText}</span>`
+  
+  var sentence1 = `In ${dropdownHtml} it's ${obsRound}ºF, ${weirdnessHtml} for ${obsTimeText}.` 
+  var sentence2 = ''
+  /*if (weirdness == 0) {
+    // no second sentence when typical
+  } else*/ if (weirdness < 3) {
+    sentence2 += `It's ${compHtml} than ${percRel}% of  temperatures on record.`
+  } else if (weirdness == 3) {
+    sentence2 += `It's the ${compHtml} ${obsTimeText} on record.`
   }
-  sentence +=  " since " + past[0].year + "."
-  return sentence
+  return sentence1 + ' ' + sentence2 + ''
 }
 
 var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
