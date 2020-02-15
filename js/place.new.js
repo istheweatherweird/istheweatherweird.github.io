@@ -182,10 +182,22 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
       .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+
+    // jitter x coordinate of current observation line if its right on a bin edge
+    var bin_edges = data.map(function(d) { return d.x0; })
+    var jitter = 1
+    var obs_jitter = obs;
+    if (obs == data[0].x0) {
+        obs_jitter += jitter
+    } else if (bin_edges.includes(obs)) {
+        obs_jitter -= jitter
+    }
+
+    x_obs = x(obs_jitter)
     svg.append("line")
-        .attr("x1", x(obs))
+        .attr("x1", x_obs)
         .attr("y1", -20)
-        .attr("x2", x(obs))
+        .attr("x2", x_obs)
         .attr("y2", height)
         .attr("stroke-width", 2)
         .attr("opacity", 0.5)
@@ -226,7 +238,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
     svg.append("text")
         // .attr("dy", ".75em")
         .attr("y", -20)
-        .attr("x", x(obs))
+        .attr("x", x_obs)
         .attr("text-anchor", "middle")
         .attr("font-size", "24px")
         .text(obsTime.getFullYear());
