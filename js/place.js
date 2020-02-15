@@ -295,7 +295,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
   if (!record) {
     sentence2 += `It's ${compHtml} than ${percRel}% of  temperatures on record.`
   } else {
-    sentence2 += `It's the ${compHtml} ${obsTimeText} on record.`
+    sentence2 += `It's the ${compHtml} ${histTimeText} on record.`
   }
   return sentence1 + ' ' + sentence2 + ''
 }
