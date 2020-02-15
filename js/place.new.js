@@ -264,7 +264,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
     if (p.ICAO == place.ICAO) {
       dropdownHtml += " active"
     }
-    dropdownHtml += "' href='/?station=" + p.ICAO + "'>" + p.place + "</a>"
+    dropdownHtml += "' href='/new.html?station=" + p.ICAO + "'>" + p.place + "</a>"
   });
   dropdownHtml += "</div></div>"
   
