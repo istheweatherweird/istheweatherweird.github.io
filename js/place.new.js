@@ -101,7 +101,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
   // A formatter for counts.
   var formatCount = d3.format(",.0f");
 
-  var margin = {top: 60, right: 30, bottom: 30, left: 30}
+  var margin = {top: 60, right: 30, bottom: 50, left: 30}
 
   var width = parseInt(d3.select("#" + wrapperId).style("width")) - margin.left - margin.right
 
@@ -230,7 +230,13 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
         .attr("text-anchor", "middle")
         .attr("font-size", "24px")
         .text(obsTime.getFullYear());
-  
+ 
+    var histTimeText = histTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
+    svg.append("text")      // text label for the x axis
+            .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom - 5) + ")")
+            .style("text-anchor", "middle")
+            .text(histTimeText + " Temperatures");
+
   // build the sentence
   var totalYears = pastTemps.length
   var perc = (pastTemps.filter(d => d < obs).length / totalYears) * 100
@@ -250,7 +256,6 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
       weirdness = 1
   }
 
-  var histTimeText = histTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
   var firstYear = past[0].year
 
   var dropdownHtml = "<div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + place.place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
