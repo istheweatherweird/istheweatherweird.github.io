@@ -297,7 +297,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
   } else {
     sentence2 += `It's ${obsRound}ºF, the ${compHtml} ${histTimeText} temperature on record.`
   }
-  return sentence1 + ' <br/><span style="font-size:20px">' + sentence2 + '</span>'
+  return sentence1 + ' <br/><span style="font-size:25px">' + sentence2 + '</span>'
 }
 
 var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
