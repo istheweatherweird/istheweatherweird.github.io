@@ -290,12 +290,13 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
   // only style the comparative if its not typical
   var compHtml = weirdness == 0 ? compText : `<span class='itww-${style}'>${compText}</span>`
   
-  var sentence1 = `In ${dropdownHtml} it's ${obsRound}ºF, ${weirdnessHtml} for ${histTimeText}.` 
+  var sentence1 = `The weather in ${dropdownHtml} is ${weirdnessHtml}.` 
   var sentence2 = ''
   if (!record) {
-    sentence2 += `It's ${compHtml} than ${percRel}% of  temperatures on record.`
+    sentence2 += `It's ${obsRound}ºF, ${compHtml} than ${percRel}% of ${histTimeText} temperatures on record.`
   } else {
-    sentence2 += `It's the ${compHtml} ${histTimeText} on record.`
+    sentence2 += `It's ${obsRound}ºF, the ${compHtml} ${histTimeText} temperature on record.`
+>>>>>>> sentence2
   }
   return sentence1 + ' ' + sentence2 + ''
 }
