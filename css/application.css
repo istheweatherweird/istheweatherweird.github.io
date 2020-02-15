@@ -95,3 +95,14 @@ rect.bar {
   border-radius: 10px;
   margin-bottom: 10px;
 }
+
+/* make hamburger menu leaner to fit on mobile */
+.navbar-toggler {
+    padding-right: .5rem;
+    padding-left: .5rem;
+}
+
+.navbar-toggler-icon {
+    width: 1.25em;
+    height: 1.25em;
+}
