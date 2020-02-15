@@ -48,6 +48,10 @@ rect.bar {
 /*  color: white;*/
 }
 
+#notes {
+    margin-top: 1em;
+}
+
 .tick text {
   font: 16px sans-serif;  
 }
