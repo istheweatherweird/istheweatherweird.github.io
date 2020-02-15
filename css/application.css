@@ -98,11 +98,22 @@ rect.bar {
 
 /* make hamburger menu leaner to fit on mobile */
 .navbar-toggler {
-    padding-right: .5rem;
-    padding-left: .5rem;
+    padding-right: .2rem;
+    padding-left: .2rem;
+    padding-top: .2rem;
+    padding-bottom: .2rem;
 }
 
 .navbar-toggler-icon {
     width: 1.2em;
     height: 1.2em;
+}
+
+.navbar {
+    padding-left: .5em;
+    padding-right: .5em;
+}
+
+.navbar-brand {
+    margin-right: .6em;
 }
