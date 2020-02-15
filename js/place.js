@@ -16,6 +16,14 @@ var getUrlVars = function() {
     return vars;
 }
 
+function roundMinutes(date) {
+    date = new Date(date.getTime())
+    date.setHours(date.getHours() + Math.round(date.getMinutes()/60));
+    date.setMinutes(0);
+
+    return date;
+}
+
 var getNearestStation = function(geoip, placeMap) {
 
     placeMap.each(function(value, key) {
@@ -61,21 +69,23 @@ var lookUpObservations = function(place) {
 
 // look up static CSV with obs and use it + observed temp to make histogram
 var makePage = function(obsTime,obsTemp,place) {
-  // put observation time at nearest hour
-  if (obsTime.getMinutes() > 29) {
-    obsTime.setTime(obsTime.getTime() + (60*60*1000))
-  }
+  // put hist time at nearest hour
+  var histTime = roundMinutes(obsTime)
   id = place.USAF + "-" + place.WBAN
-  var pastUrl = DATA_URL + "/csv/" + id + "/" + String(obsTime.getUTCMonth()+1).padStart(2,'0') + String(obsTime.getUTCDate()).padStart(2,'0') + ".csv"
-  var obsUTCHour = obsTime.getUTCHours()
+  var pastUrl = DATA_URL + "/csv/" + id + "/" + String(histTime.getUTCMonth()+1).padStart(2,'0') + String(histTime.getUTCDate()).padStart(2,'0') + ".csv"
+  var histUTCHour = histTime.getUTCHours()
   d3.csv(pastUrl,function(d) {
-    if (+d.hour == obsUTCHour) {
+    if (+d.hour == histUTCHour) {
       return {year: +d.year, temp: 32 + (+d.temp) * 0.18}
     };
   }).then(function(past) {
     // make histograms
-    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime, place)
-    d3.selectAll("#weird").html(sentence)
+    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime, place, histTime)
+    d3.select("#weird").html(sentence)
+    Place = place
+    Past = past
+    ObsTime = obsTime
+    d3.select("#notes").text('Notes:').append('ul').append('li').text(`Weather station: ${place['STATION NAME']}`).append('li').text(`NWS API last observation: ${obsTime.toLocaleDateString("en-US",{hour: "numeric", minute:"numeric", timeZone: place.TZ})}`).append('li').text(`NOAA ISD history: ${Past.length} observations since ${Past[0]['year']}`).append('li').text(`Timezone: ${place.TZ}`)
 
     if (phone) {
       $("#weird").css("font-size","30px")
@@ -86,12 +96,12 @@ var makePage = function(obsTime,obsTemp,place) {
 }
 
 
-var makeHist = function(wrapperId, obs, past, obsTime, place) {
+var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
   var pastTemps = past.map(function(d) { return d.temp })
   // A formatter for counts.
   var formatCount = d3.format(",.0f");
 
-  var margin = {top: 60, right: 30, bottom: 30, left: 30}
+  var margin = {top: 60, right: 30, bottom: 50, left: 30}
 
   var width = parseInt(d3.select("#" + wrapperId).style("width")) - margin.left - margin.right
 
@@ -220,52 +230,74 @@ var makeHist = function(wrapperId, obs, past, obsTime, place) {
         .attr("text-anchor", "middle")
         .attr("font-size", "24px")
         .text(obsTime.getFullYear());
-        
-  var totalYears = pastTemps.length
-  var sentence = "It's " + Math.round(obs,0) + "ºF, "
-  var perc = (pastTemps.filter(d => d < obs).length / totalYears) * 100
-  var typical = false
-  var record = false
+ 
+    var histTimeText = histTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
+    svg.append("text")      // text label for the x axis
+            .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom - 5) + ")")
+            .style("text-anchor", "middle")
+            .text(histTimeText + " Temperatures");
 
-  if ((perc >= 25) && (perc <= 75)) {
-    sentence += "<span class='itww-typical'>typical</span> for "
-    typical = true
-  } else {
-    if (perc > 75) {
-      if (perc == 100) {
-        sentence += "the <span class='itww-hottest'>hottest</span> "
-        record = true
-      } else {
-        sentence += "<span class='itww-warmer'>warmer</span> than " + Math.floor(perc / 5)*5 + "% of "
-      }
-    } else {
-      if (perc == 0) {
-        sentence += "the <span class='itww-coldest'>coldest</span> "
-        record = true
-      } else {
-        sentence += "<span class='itww-colder'>colder</span> than " + Math.floor((100-perc) / 5)*5 + "% of "
-      }
-    }
-  }
-  sentence += obsTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
-  if (!typical && !record) {
-    sentence += " temperatures"
-  }
-  sentence += " in <div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + place.place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
-  placeMap.each(function(p) {
-    sentence += "<a class='dropdown-item"
-    if (p.ICAO == place.ICAO) {
-      sentence += " active"
-    }
-    sentence += "' href='/?station=" + p.ICAO + "'>" + p.place + "</a>"
-  });
+  // build the sentence
+  var totalYears = pastTemps.length
+  var perc = (pastTemps.filter(d => d < obs).length / totalYears) * 100
   
-  sentence += "</div></div>"
-  if (record) {
-    sentence += " on record"
+  var warm = perc >= 50
+  var percRel = warm ? perc : 100 - perc
+  percRel = Math.round(percRel, 0)
+  
+  var weirdness = 0
+  var record = false
+  if (percRel >= 97.5) {
+      weirdness = 3
+      record = true
+  } else if (percRel >= 90) {
+      weirdness = 2
+  } else if (percRel >= 75) {
+      weirdness = 1
   }
-  sentence +=  " since " + past[0].year + "."
-  return sentence
+
+  var firstYear = past[0].year
+
+  var dropdownHtml = "<div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + place.place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
+  placeMap.each(function(p) {
+    dropdownHtml += "<a class='dropdown-item"
+    if (p.ICAO == place.ICAO) {
+      dropdownHtml += " active"
+    }
+    dropdownHtml += "' href='/?station=" + p.ICAO + "'>" + p.place + "</a>"
+  });
+  dropdownHtml += "</div></div>"
+  
+  var obsRound = Math.round(obs, 0)
+  
+  var weirdnessTexts = [
+    'typical', 
+    'a bit weird',
+    'weird',
+    'very weird'
+  ]
+  var weirdnessText = weirdnessTexts[weirdness]
+
+  var compTexts = [
+    ['colder', 'coldest'],
+    ['warmer', 'warmest']
+  ]
+  // use unary + to convert boolean to integer for indexing
+  var compText = compTexts[+warm][+(weirdness == 3)]
+  
+  var style = weirdness == 0 ? 'typical' : compText
+  var weirdnessHtml = `<span class='itww-${style}'>${weirdnessText}</span>`
+  // only style the comparative if its not typical
+  var compHtml = weirdness == 0 ? compText : `<span class='itww-${style}'>${compText}</span>`
+  
+  var sentence1 = `In ${dropdownHtml} it's ${obsRound}ºF, ${weirdnessHtml} for ${histTimeText}.` 
+  var sentence2 = ''
+  if (!record) {
+    sentence2 += `It's ${compHtml} than ${percRel}% of  temperatures on record.`
+  } else {
+    sentence2 += `It's the ${compHtml} ${obsTimeText} on record.`
+  }
+  return sentence1 + ' ' + sentence2 + ''
 }
 
 var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
