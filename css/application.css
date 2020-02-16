@@ -29,7 +29,8 @@
 
 /* graph */
 rect.bar {
-  fill: steelblue;
+  stroke: steelblue;
+  fill: #74a1c7;
   shape-rendering: crispEdges;
 }
 
