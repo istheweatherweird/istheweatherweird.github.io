@@ -252,7 +252,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
       record = true
   } else if (percRel >= 90) {
       weirdness = 2
-  } else if (percRel >= 75) {
+  } else if (percRel >= 80) {
       weirdness = 1
   }
 
