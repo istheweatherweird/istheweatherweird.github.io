@@ -285,7 +285,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
     ['warmer', 'warmest']
   ]
   // use unary + to convert boolean to integer for indexing
-  var compText = compTexts[+warm][+(record == 3)]
+  var compText = compTexts[+warm][+record]
   
   var style = weirdness == 0 ? 'typical' : compText
   var weirdnessHtml = `<span class='itww-${style}'>${weirdnessText}</span>`
