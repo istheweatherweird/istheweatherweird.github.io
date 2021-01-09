@@ -44,7 +44,7 @@ rect.bar {
   shape-rendering: crispEdges;
 }
 
-#graphWrapper {
+#histWrapper {
   font: 16px sans-serif;
 /*  color: white;*/
 }
@@ -55,12 +55,12 @@ rect.bar {
 }
 
 .tick text {
-  font: 16px sans-serif;  
+  font: 16px sans-serif;
 }
 
 
 #currentYear text {
-  font: 20px sans-serif;  
+  font: 20px sans-serif;
 }
 
 .itww-typical {
