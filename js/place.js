@@ -25,7 +25,7 @@ function roundMinutes(date) {
 }
 
 var getNearestStation = function(geoip, placeMap) {
-    placeMap.each(function(value, key) {
+    placeMap.forEach(function(value, key) {
         // return the place closest to the geoipResponse
         value.distance = distance(
             +geoip.latitude,
@@ -34,9 +34,9 @@ var getNearestStation = function(geoip, placeMap) {
             +value.LON)
     });
 
-    return d3.entries(placeMap)
+    return Array.from(placeMap.entries())
         .sort(function(a, b) {
-            return d3.ascending(a.value.distance, b.value.distance); })[0].value;
+            return d3.ascending(a[1].distance, b[1].distance); })[0][1];
 }
 
 var lookUpObservations = function(place,interval) {
@@ -122,7 +122,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, interval
     }
 
     var ticks = x_with_value.ticks(tickNum)
-    var data = d3.histogram()
+    var data = d3.bin()
         .value(function(d) {return d.temp})
         .thresholds(ticks)
         (past.concat({temp: obs, year: obsTime.getUTCFullYear()}));
@@ -262,7 +262,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, interval
   var firstYear = past[0].year
 
   var placeDropdownHtml = "<div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='placeDropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + place.place + "</button><div class='dropdown-menu' aria-labelledby='placeDropdownMenuButton'>"
-  placeMap.each(function(p) {
+  Array.from(placeMap.values()).forEach(function(p) {
     placeDropdownHtml += "<a class='dropdown-item"
     if (p.ICAO == place.ICAO) {
       placeDropdownHtml += " active"
@@ -350,7 +350,7 @@ var makeYearTimeSeries = function(wrapperId, obs, past, obsTime, place, histTime
     }
 
     var ticks = x_with_value.ticks(tickNum)
-    var data = d3.histogram()
+    var data = d3.bin()
         .value(function(d) {return d.temp})
         .thresholds(ticks)
         (past.concat({temp: obs, year: obsTime.getUTCFullYear()}));
@@ -482,7 +482,8 @@ var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.tes
 var stations_url = DATA_URL + "/csv/stations.csv"
 d3.csv(stations_url).then(function(data) {
     // placeMap = new Map()
-    placeMap = d3.map(data, function(d) { return d.ICAO })
+    // placeMap = d3.map(data, function(d) { return d.ICAO })
+    placeMap = new Map(data.map(d => [d.ICAO, d]));
     var interval;
     if ('interval' in getUrlVars()) {
         interval = getUrlVars().interval
