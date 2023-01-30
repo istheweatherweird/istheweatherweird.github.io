@@ -325,7 +325,7 @@ d3.csv(stations_url).then(function(data) {
     placeMap = d3.map(data, function(d) { return d.ICAO })
     /* If we get an error we will */
     var onError = function (error) {
-      lookUpObservations(placeMap.get(DEFAULT_STATION))
+      lookUpObservations(placeMap.get(DEFAULT_STATION),"F")
     };
 
     station = getUrlVars().station
@@ -342,7 +342,6 @@ d3.csv(stations_url).then(function(data) {
         if (place) {
             lookUpObservations(place,units)
         } else {
-            units = "F"
             onError()
         }
     } else {
@@ -357,7 +356,6 @@ d3.csv(stations_url).then(function(data) {
             }
             lookUpObservations(place,units)
         }).fail(function() {
-            units = "F"
             onError()
         })
     }
