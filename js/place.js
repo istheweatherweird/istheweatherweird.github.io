@@ -40,7 +40,7 @@ var getNearestStation = function(geoip, placeMap) {
             return d3.ascending(a.value.distance, b.value.distance); })[0].value;
 }
 
-var lookUpObservations = function(place) {
+var lookUpObservations = function(place,units) {
   // get the most recent observation
   d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations/latest").then(function(response) {
     // if it doesn't have an observation, look further back
@@ -51,24 +51,29 @@ var lookUpObservations = function(place) {
           for (var i = 0; i < newResponse.features.length; i++) {
             obsTemp = newResponse.features[i].properties.temperature.value  
             if (obsTemp != null) {
-              obsTemp = obsTemp  * 1.8 + 32;
+              if (units == "F") {
+                obsTemp = obsTemp * 1.8 + 32;
+              }
               obsTime = new Date(newResponse.features[i].properties.timestamp)
               break
             }
           }
-          makePage(obsTime,obsTemp,place)
+          makePage(obsTime,obsTemp,place,units)
         })
     // otherwise, go for it!
     } else {
       var obsTime = new Date(response.properties.timestamp)
-      var obsTemp = response.properties.temperature.value * 1.8 + 32;
-      makePage(obsTime,obsTemp,place)
+      var obsTemp = response.properties.temperature.value
+      if (units == "F") {
+        obsTemp = obsTemp * 1.8 + 32;
+      }
+      makePage(obsTime,obsTemp,place,units)
     }
   })
 }
 
 // look up static CSV with obs and use it + observed temp to make histogram
-var makePage = function(obsTime,obsTemp,place) {
+var makePage = function(obsTime,obsTemp,place,units) {
   // put hist time at nearest hour
   var histTime = roundMinutes(obsTime)
   id = place.USAF + "-" + place.WBAN
@@ -76,11 +81,15 @@ var makePage = function(obsTime,obsTemp,place) {
   var histUTCHour = histTime.getUTCHours()
   d3.csv(pastUrl,function(d) {
     if (+d.hour == histUTCHour) {
-      return {year: +d.year, temp: 32 + (+d.temp) * 0.18}
+      if (units == "C") {
+        return {year: +d.year, temp: (+d.temp) * 0.1}
+      } else {
+        return {year: +d.year, temp: 32 + (+d.temp) * 0.18}
+      }
     };
   }).then(function(past) {
     // make histograms
-    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime, place, histTime)
+    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime, place, histTime, units)
     d3.select("#weird").html(sentence)
     Place = place
     Past = past
@@ -96,7 +105,7 @@ var makePage = function(obsTime,obsTemp,place) {
 }
 
 
-var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
+var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units) {
   var pastTemps = past.map(function(d) { return d.temp })
   // A formatter for counts.
   var formatCount = d3.format(",.0f");
@@ -171,7 +180,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
             }
 
             if (i == last_label_i) {
-                label += "ºF"
+                label += "º" + units
             }
             return label
         });
@@ -266,7 +275,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
     if (p.ICAO == place.ICAO) {
       dropdownHtml += " active"
     }
-    dropdownHtml += "' href='/?station=" + p.ICAO + "'>" + p.place + "</a>"
+    dropdownHtml += "' href='/?station=" + p.ICAO + "&units=" + units + "'>" + p.place + "</a>"
   });
   dropdownHtml += "</div></div>"
   
@@ -292,12 +301,17 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime) {
   // only style the comparative if its not typical
   var compHtml = weirdness == 0 ? compText : `<span class='itww-${style}'>${compText}</span>`
   
+  var unitHtml = "<div class='dropdown div-inline'><button id='itww-units-button' class='btn btn-secondary btn-lg btn-units dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>º" + units + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
+
+  unitHtml += `<a class='dropdown-item${(units == "F") ? " active" : ""}' href='/?station=` + place.ICAO + `&units=F'>ºF</a><a class='dropdown-item${(units == "C") ? " active" : ""}' href='/?station=` + place.ICAO + "&units=C'>ºC</a></div></div>"
+
+
   var sentence1 = `The weather in ${dropdownHtml} is ${weirdnessHtml}.` 
   var sentence2 = ''
   if (!record) {
-    sentence2 += `It's ${obsRound}ºF, ${compHtml} than ${percRel}% of ${histTimeText} temperatures on record.`
+    sentence2 += `It's ${obsRound}${unitHtml}, ${compHtml} than ${percRel}% of ${histTimeText} temperatures on record.`
   } else {
-    sentence2 += `It's ${obsRound}ºF, the ${compHtml} ${histTimeText} temperature on record.`
+    sentence2 += `It's ${obsRound}${unitHtml}, the ${compHtml} ${histTimeText} temperature on record.`
   }
   return sentence1 + ' <br/><span style="font-size:25px">' + sentence2 + '</span>'
 }
@@ -314,17 +328,32 @@ d3.csv(stations_url).then(function(data) {
     };
 
     station = getUrlVars().station
+    units = getUrlVars().units
     if (station) {
         place = placeMap.get(station)
+        if (!units) {
+          if (place.CTRY == "US") {
+              units = "F"
+          } else {
+              units = "C"
+          }
+        }
         if (place) {
-            lookUpObservations(place)
+            lookUpObservations(place,units)
         } else {
             onError()
         }
     } else {
         $.getJSON("https://get.geojs.io/v1/ip/geo.json", function(geoip) {
             place = getNearestStation(geoip, placeMap)
-            lookUpObservations(place)
+            if (!units) {
+              if (place.CTRY == "US") {
+                  units = "F"
+              } else {
+                  units = "C"
+              }
+            }
+            lookUpObservations(place,units)
         }).fail(function() {
             onError()
         })
