@@ -46,19 +46,20 @@ var lookUpObservations = function(place,units) {
     // if it doesn't have an observation, look further back
     if (response.properties.temperature.value == null) {
         d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations").then(function(newResponse) {
-          var obsTime = 0
-          var obsTemp = null
-          for (var i = 0; i < newResponse.features.length; i++) {
-            obsTemp = newResponse.features[i].properties.temperature.value  
-            if (obsTemp != null) {
+          // filter to non-null temps
+          var features = newResponse.features.filter(function(x) {return x.properties.temperature.value != null})
+          if (features.length > 0) {
+              // sort chronologically
+              features = features.sort(function(x,y) {
+                  return d3.descending(x.properties.timestamp, y.properties.timestamp) })
+              feature = features[0]
+              var obsTime = new Date(feature.properties.timestamp)
+              var obsTemp = feature.properties.temperature.value
               if (units == "F") {
                 obsTemp = obsTemp * 1.8 + 32;
               }
-              obsTime = new Date(newResponse.features[i].properties.timestamp)
-              break
-            }
+              makePage(obsTime,obsTemp,place,units)
           }
-          makePage(obsTime,obsTemp,place,units)
         })
     // otherwise, go for it!
     } else {
