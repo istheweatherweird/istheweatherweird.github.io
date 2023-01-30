@@ -342,6 +342,7 @@ d3.csv(stations_url).then(function(data) {
         if (place) {
             lookUpObservations(place,units)
         } else {
+            units = "F"
             onError()
         }
     } else {
@@ -356,6 +357,7 @@ d3.csv(stations_url).then(function(data) {
             }
             lookUpObservations(place,units)
         }).fail(function() {
+            units = "F"
             onError()
         })
     }
