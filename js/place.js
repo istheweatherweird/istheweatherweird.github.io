@@ -200,15 +200,57 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units) {
         .attr("stroke-width", 2)
         .attr("opacity", 0.5)
         .attr("stroke", "black");
-        
+    
+      // build the sentence
+  var totalYears = pastTemps.length
+  
+  var weirdnessFunc = function(n) {
+    var perc = (pastTemps.filter(d => d < n).length / totalYears) * 100
+    var warm = perc >= 50
+    var percRel = warm ? perc : 100 - perc
+    percRel = Math.round(percRel, 0)  
+    var weirdness = 0
+    var record = false
+    if (percRel >= 97.5) {
+        weirdness = 3
+        if (percRel == 100) {
+            record = true
+        }
+    } else if (percRel >= 90) {
+        weirdness = 2
+    } else if (percRel >= 80) {
+        weirdness = 1
+    }
+    return [warm,weirdness,record,percRel];
+  }
+
+  var compTexts = [
+    ['colder', 'coldest'],
+    ['warmer', 'warmest']
+  ]
+
+  var weirdnessClass = function(warm,weirdness,record) {
+    // use unary + to convert boolean to integer for indexing
+    var compText = compTexts[+warm][+record]
+    var style = weirdness == 0 ? 'typical' : compText
+    return [compText,style]
+  }
+        // .attr("class", "bar")
+
     svg.selectAll("rect")
       .data(data)
     .enter().append("rect")
-      .attr("class", "bar")
       .attr("x", 1)
       .attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; })
       .attr("width", function(d) { return x(d.x1) - x(d.x0) ; })
-      .attr("height", function(d) { return height - y(d.length); });
+      .attr("height", function(d) { return height - y(d.length); })
+      .attr("class", function(d) { 
+        // console.log(weirdnessFunc((d.x1 + d.x0)/2))
+
+        var w_ar = weirdnessFunc((d.x1 + d.x0)/2);
+        var w_c_ar = weirdnessClass(w_ar[0],w_ar[1],false)
+        return "bar itww-" + w_c_ar[1]
+      });
 
       if (!phone) {
         data.forEach(function(d,i) {
@@ -247,26 +289,11 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units) {
             .style("text-anchor", "middle")
             .text(histTimeText + " Temperatures");
 
-  // build the sentence
-  var totalYears = pastTemps.length
-  var perc = (pastTemps.filter(d => d < obs).length / totalYears) * 100
-  
-  var warm = perc >= 50
-  var percRel = warm ? perc : 100 - perc
-  percRel = Math.round(percRel, 0)
-  
-  var weirdness = 0
-  var record = false
-  if (percRel >= 97.5) {
-      weirdness = 3
-      if (percRel == 100) {
-          record = true
-      }
-  } else if (percRel >= 90) {
-      weirdness = 2
-  } else if (percRel >= 80) {
-      weirdness = 1
-  }
+  var weirdness_array = weirdnessFunc(obs)
+  var warm = weirdness_array[0]
+  var weirdness = weirdness_array[1]
+  var record = weirdness_array[2]
+  var percRel = weirdness_array[3]
 
   var firstYear = past[0].year
 
@@ -290,14 +317,10 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units) {
   ]
   var weirdnessText = weirdnessTexts[weirdness]
 
-  var compTexts = [
-    ['colder', 'coldest'],
-    ['warmer', 'warmest']
-  ]
-  // use unary + to convert boolean to integer for indexing
-  var compText = compTexts[+warm][+record]
-  
-  var style = weirdness == 0 ? 'typical' : compText
+  var weirdnessClassAr = weirdnessClass(warm,weirdness,record)
+  var compText = weirdnessClassAr[0]
+  var style = weirdnessClassAr[1]
+
   var weirdnessHtml = `<span class='itww-${style}'>${weirdnessText}</span>`
   // only style the comparative if its not typical
   var compHtml = weirdness == 0 ? compText : `<span class='itww-${style}'>${compText}</span>`

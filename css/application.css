@@ -1,7 +1,8 @@
 :root {
   --jumbotron-padding-y: 1.5rem;
   --gray-dark: #343434;
-  --gray-light: #ddd;
+  --gray-light: rgba(0, 128, 0, 0.466);
+  /* --gray-light: #ddd; */
 }
 
 .jumbotron {
@@ -32,7 +33,6 @@
 /* graph */
 rect.bar {
   stroke: rgb(101, 101, 101);
-  fill: var(--gray-light);
   shape-rendering: crispEdges;
 }
 
@@ -89,23 +89,32 @@ div.navbar {
 }
 
 .itww-typical {
-    color: green
+  color: green;
+  fill: rgba(0, 128, 0, 0.3);
 }
 
+/* rect.bar.itww-typical {
+  fill: rgba(0, 128, 0, 0.3);
+} */
+
 .itww-warmer {
-    color: tomato
+    color: tomato;
+    fill: rgba(255, 99, 71, 0.3);
 }
 
 .itww-warmest {
-    color: red
+    color: red;
+    fill: rgba(255, 0, 0, 0.3);
 }
 
 .itww-colder {
-    color: lightblue
+    color: lightblue;
+    fill: rgba(173, 216, 230, 0.3);
 }
 
 .itww-coldest {
-    color: blue
+    color: blue;
+    fill: rgba(0, 0, 255, 0.3);
 }
 
 .div-inline{
