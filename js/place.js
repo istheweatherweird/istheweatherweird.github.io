@@ -25,7 +25,6 @@ function roundMinutes(date) {
 }
 
 var getNearestStation = function(geoip, placeMap) {
-
     placeMap.each(function(value, key) {
         // return the place closest to the geoipResponse
         value.distance = distance(
@@ -40,7 +39,7 @@ var getNearestStation = function(geoip, placeMap) {
             return d3.ascending(a.value.distance, b.value.distance); })[0].value;
 }
 
-var lookUpObservations = function(place,units) {
+var lookUpObservations = function(place,units,interval) {
   // get the most recent observation
   d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations/latest").then(function(response) {
     // if it doesn't have an observation, look further back
@@ -58,7 +57,7 @@ var lookUpObservations = function(place,units) {
               if (units == "F") {
                 obsTemp = obsTemp * 1.8 + 32;
               }
-              makePage(obsTime,obsTemp,place,units)
+              makePage(obsTime,obsTemp,place,units,interval)
           }
         })
     // otherwise, go for it!
@@ -68,13 +67,13 @@ var lookUpObservations = function(place,units) {
       if (units == "F") {
         obsTemp = obsTemp * 1.8 + 32;
       }
-      makePage(obsTime,obsTemp,place,units)
+      makePage(obsTime,obsTemp,place,units,interval)
     }
   })
 }
 
 // look up static CSV with obs and use it + observed temp to make histogram
-var makePage = function(obsTime,obsTemp,place,units) {
+var makePage = function(obsTime, obsTemp, place, units, interval) {
   // put hist time at nearest hour
   var histTime = roundMinutes(obsTime)
   id = place.USAF + "-" + place.WBAN
@@ -90,7 +89,7 @@ var makePage = function(obsTime,obsTemp,place,units) {
     };
   }).then(function(past) {
     // make histograms
-    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime, place, histTime, units)
+    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime, place, histTime, units, interval)
     d3.select("#weird").html(sentence)
     Place = place
     Past = past
@@ -101,15 +100,20 @@ var makePage = function(obsTime,obsTemp,place,units) {
       $("#weird").css("font-size","30px")
       $('#itww-place-button').css("font-size", "30px")
     }
-
   });
 }
 
+var intervals = ["hour","day","week","month","year"]
+var intervalPhrases = {
+    hour: "right now",
+    day: "in the past day",
+    week: "in the past week",
+    month: "in the past month",
+    year: "in the past year"
+} //
 
-var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units) {
+var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, interval) {
   var pastTemps = past.map(function(d) { return d.temp })
-  // A formatter for counts.
-  var formatCount = d3.format(",.0f");
 
   var margin = {top: 60, right: 30, bottom: 50, left: 30}
 
@@ -242,10 +246,12 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units) {
         .text(obsTime.getFullYear());
  
     var histTimeText = histTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
+    var obsInterval = interval == "hour" ? `${histTimeText} Temperatures` : `Temperatures for the ${interval} ending ${histTimeText}`
     svg.append("text")      // text label for the x axis
             .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom - 5) + ")")
             .style("text-anchor", "middle")
-            .text(histTimeText + " Temperatures");
+            .text(obsInterval);
+            // .text(histTimeText + " Temperatures");
 
   // build the sentence
   var totalYears = pastTemps.length
@@ -268,17 +274,25 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units) {
       weirdness = 1
   }
 
-  var firstYear = past[0].year
-
-  var dropdownHtml = "<div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + place.place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
+  var placeDropdownHtml = "<div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + place.place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
   placeMap.each(function(p) {
-    dropdownHtml += "<a class='dropdown-item"
+    placeDropdownHtml += "<a class='dropdown-item"
     if (p.ICAO == place.ICAO) {
-      dropdownHtml += " active"
+      placeDropdownHtml += " active"
     }
-    dropdownHtml += "' href='/?station=" + p.ICAO + "&units=" + units + "'>" + p.place + "</a>"
+    placeDropdownHtml += "' href='/?station=" + p.ICAO + "&units=" + units + "&interval=" + interval + "'>" + p.place + "</a>"
   });
-  dropdownHtml += "</div></div>"
+  placeDropdownHtml += "</div></div>"
+
+  var intervalDropdownHtml = "<div class='dropdown div-inline'><button id='itww-interval-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='intervalDropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + intervalPhrases[interval] + "</button><div class='dropdown-menu' aria-labelledby='intervalDropdownMenuButton'>"
+  intervals.forEach(function(i) {
+    intervalDropdownHtml += "<a class='dropdown-item"
+    if (i == interval) {
+      intervalDropdownHtml += " active"
+    }
+    intervalDropdownHtml += "' href='?station=" + place.ICAO + "&units=" + units + "&interval=" + i + "'>" + intervalPhrases[i] + "</a>"
+  });
+  intervalDropdownHtml += "</div></div>"
   
   var obsRound = Math.round(obs, 0)
   
@@ -301,18 +315,26 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units) {
   var weirdnessHtml = `<span class='itww-${style}'>${weirdnessText}</span>`
   // only style the comparative if its not typical
   var compHtml = weirdness == 0 ? compText : `<span class='itww-${style}'>${compText}</span>`
+  var verbTense = interval == "hour" ? "is" : "was"
+  var obsVerb = interval == "hour" ? "It's" : "It was"
+  var obsAvg = interval == "hour" ? "" : " on average"
+  obsInterval = obsInterval.replace("Temperatures", "temperatures")
+
   
   var unitHtml = "<div class='dropdown div-inline'><button id='itww-units-button' class='btn btn-secondary btn-lg btn-units dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>º" + units + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
 
   unitHtml += `<a class='dropdown-item${(units == "F") ? " active" : ""}' href='/?station=` + place.ICAO + `&units=F'>ºF</a><a class='dropdown-item${(units == "C") ? " active" : ""}' href='/?station=` + place.ICAO + "&units=C'>ºC</a></div></div>"
 
 
-  var sentence1 = `The weather in ${dropdownHtml} is ${weirdnessHtml}.` 
+  var sentence1 = `The weather in ${placeDropdownHtml} ${verbTense} ${weirdnessHtml} ${intervalDropdownHtml}.` 
   var sentence2 = ''
   if (!record) {
-    sentence2 += `It's ${obsRound}${unitHtml}, ${compHtml} than ${percRel}% of ${histTimeText} temperatures on record.`
+    // sentence2 += `It's ${obsRound}${unitHtml}, ${compHtml} than ${percRel}% of ${histTimeText} temperatures on record.`
+    sentence2 += `${obsVerb} ${obsRound}${unitHtml}${obsAvg}, ${compHtml} than ${percRel}% of ${obsInterval} on record.`
   } else {
-    sentence2 += `It's ${obsRound}${unitHtml}, the ${compHtml} ${histTimeText} temperature on record.`
+    // sentence2 += `It's ${obsRound}${unitHtml}, the ${compHtml} ${histTimeText} temperature on record.`
+    obsInterval = obsInterval.replace("temperatures", "temperature")
+    sentence2 += `${obsVerb} ${obsRound}ºF${obsAvg}, the ${compHtml} ${obsInterval} on record.`
   }
   return sentence1 + ' <br/><span style="font-size:25px">' + sentence2 + '</span>'
 }
@@ -323,6 +345,12 @@ var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.tes
 var stations_url = DATA_URL + "/csv/stations.csv"
 d3.csv(stations_url).then(function(data) {
     placeMap = d3.map(data, function(d) { return d.ICAO })
+    var interval;
+    if ('interval' in getUrlVars()) {
+        interval = getUrlVars().interval
+    } else {
+        interval = "hour"
+    }
     /* If we get an error we will */
     var onError = function (error) {
       lookUpObservations(placeMap.get(DEFAULT_STATION),"F")
@@ -340,7 +368,7 @@ d3.csv(stations_url).then(function(data) {
           }
         }
         if (place) {
-            lookUpObservations(place,units)
+            lookUpObservations(place,units,interval)
         } else {
             onError()
         }
@@ -354,7 +382,7 @@ d3.csv(stations_url).then(function(data) {
                   units = "C"
               }
             }
-            lookUpObservations(place,units)
+            lookUpObservations(place,units,interval)
         }).fail(function() {
             onError()
         })
