@@ -29,9 +29,13 @@
 
 /* graph */
 rect.bar {
-  stroke: steelblue;
-  fill: #74a1c7;
+  stroke: rgb(101, 101, 101);
+  fill: #ddd;
   shape-rendering: crispEdges;
+}
+
+div.navbar {
+  background-color: #343434 !important;
 }
 
 .bar text {
