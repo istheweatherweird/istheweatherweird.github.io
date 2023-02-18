@@ -91,6 +91,9 @@ div.navbar {
 /* rgb_from_rgba(r,g,b,a) = (r,g,b) .+ ((1-a) .* (255-r,255-g,255-b)) */
 .itww-typical {
   color: gray;
+}
+
+.bar.itww-typical {
   fill: rgba(241.8, 241.8, 241.8, 1.0);
 }
 
@@ -105,22 +108,38 @@ div.navbar {
 
 .itww-warmer {
     color: tomato;
-    fill: rgba(255.0, 208.2, 199.8, 1.0);
+    fill: tomato;
+}
+
+.bar.itww-warmer {
+  fill: rgba(255.0, 208.2, 199.8, 1.0);
 }
 
 .itww-warmest {
-    color: red;
-    fill: rgba(255.0, 178.5, 178.5, 1.0);
+  color: red;
+  fill: red;
+}
+
+.bar.itww-warmest {
+  fill: rgba(255.0, 178.5, 178.5, 1.0);
 }
 
 .itww-colder {
-    color: lightblue;
-    fill: rgba(230.4, 243.3, 247.5, 1.0);
+  color: lightblue;
+  fill: lightblue;
+}
+
+.bar.itww-colder {
+  fill: rgba(230.4, 243.3, 247.5, 1.0);
 }
 
 .itww-coldest {
-    color: blue;
-    fill: rgba(178.5, 178.5, 255, 1.0);
+  color: blue;
+  fill: blue;
+}
+
+.bar.itww-coldest {
+  fill: rgba(178.5, 178.5, 255, 1.0);
 }
 
 .div-inline{

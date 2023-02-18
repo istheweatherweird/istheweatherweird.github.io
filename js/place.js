@@ -275,12 +275,30 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units) {
         .call(xAxis);
 
         
+    var weirdness_array = weirdnessFunc(obs)
+    var warm = weirdness_array[0]
+    var weirdness = weirdness_array[1]
+    var record = weirdness_array[2]
+    var percRel = weirdness_array[3]
+    var weirdnessTexts = [
+      'typical', 
+      'a bit weird',
+      'weird',
+      'very weird'
+    ]
+    var weirdnessText = weirdnessTexts[weirdness]
+
+    var weirdnessClassAr = weirdnessClass(warm,weirdness,record)
+    var compText = weirdnessClassAr[0]
+    var style = weirdnessClassAr[1]
+    
     svg.append("text")
         // .attr("dy", ".75em")
         .attr("y", -20)
         .attr("x", x(obs))
         .attr("text-anchor", "middle")
         .attr("font-size", "24px")
+        .attr("class","itww-" + style)
         .text(obsTime.getFullYear());
  
     var histTimeText = histTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
@@ -289,11 +307,6 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units) {
             .style("text-anchor", "middle")
             .text(histTimeText + " Temperatures");
 
-  var weirdness_array = weirdnessFunc(obs)
-  var warm = weirdness_array[0]
-  var weirdness = weirdness_array[1]
-  var record = weirdness_array[2]
-  var percRel = weirdness_array[3]
 
   var firstYear = past[0].year
 
@@ -309,17 +322,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units) {
   
   var obsRound = Math.round(obs, 0)
   
-  var weirdnessTexts = [
-    'typical', 
-    'a bit weird',
-    'weird',
-    'very weird'
-  ]
-  var weirdnessText = weirdnessTexts[weirdness]
 
-  var weirdnessClassAr = weirdnessClass(warm,weirdness,record)
-  var compText = weirdnessClassAr[0]
-  var style = weirdnessClassAr[1]
 
   var weirdnessHtml = `<span class='itww-${style}'>${weirdnessText}</span>`
   // only style the comparative if its not typical
