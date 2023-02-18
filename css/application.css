@@ -1,8 +1,8 @@
 :root {
   --jumbotron-padding-y: 1.5rem;
   --gray-dark: #343434;
-  --gray-light: rgba(0, 128, 0, 0.466);
-  /* --gray-light: #ddd; */
+  /* --gray-light: rgba(0, 128, 0, 0.466); */
+  --gray-light: #ddd;
 }
 
 .jumbotron {
@@ -88,10 +88,16 @@ div.navbar {
   font: 20px sans-serif;  
 }
 
+/* rgb_from_rgba(r,g,b,a) = (r,g,b) .+ ((1-a) .* (255-r,255-g,255-b)) */
 .itww-typical {
+  color: gray;
+  fill: rgba(241.8, 241.8, 241.8, 1.0);
+}
+
+/* .itww-typical {
   color: green;
   fill: rgba(0, 128, 0, 0.3);
-}
+} */
 
 /* rect.bar.itww-typical {
   fill: rgba(0, 128, 0, 0.3);
@@ -99,22 +105,22 @@ div.navbar {
 
 .itww-warmer {
     color: tomato;
-    fill: rgba(255, 99, 71, 0.3);
+    fill: rgba(255.0, 208.2, 199.8, 1.0);
 }
 
 .itww-warmest {
     color: red;
-    fill: rgba(255, 0, 0, 0.3);
+    fill: rgba(255.0, 178.5, 178.5, 1.0);
 }
 
 .itww-colder {
     color: lightblue;
-    fill: rgba(173, 216, 230, 0.3);
+    fill: rgba(230.4, 243.3, 247.5, 1.0);
 }
 
 .itww-coldest {
     color: blue;
-    fill: rgba(0, 0, 255, 0.3);
+    fill: rgba(178.5, 178.5, 255, 1.0);
 }
 
 .div-inline{
