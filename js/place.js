@@ -237,20 +237,100 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units) {
   }
         // .attr("class", "bar")
 
+  var defs = svg.append("defs");
+
+  quantile = function(arr, q) {
+    var sorted = arr.sort(function(a,b) { return a-b; });
+    var pos = (sorted.length - 1) * q;
+    var base = Math.floor(pos);
+    var rest = pos - base;
+    if (sorted[base + 1] !== undefined) {
+        return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+    } else {
+        return sorted[base];
+    }
+  };
+
+  
+  
+
+// svg.append("path")
+// .attr("d", "M 25 25 L 75 25 L 75 75 Z")
+// .attr("stroke", "url(#svgGradient)")
+// .attr("fill", "none");
+
+  var gradientFrac = .1 // fraction of the range to make each gradient (max should be 1/smallest number of bars)
+  var coldestBar = data[0].x0 // the coldest value of the coldest bar
+  // var weirdColder = quantile(pastTemps,.1) // transition temperature from weird cold to typical
+  var weirdCold = quantile(pastTemps,.2) // transition temperature from weird cold to typical
+  var weirdWarm = quantile(pastTemps,.8) // transition temperature from weird warm to typical
+  // var weirdWarmer = quantile(pastTemps,.9) // transition temperature from weird warm to typical
+  var warmestBar = data[data.length-1].x1 // the warmest value of the warmest var
+  // var weirdColerBeforePerc = (((weirdColder - coldestBar) / (warmestBar - coldestBar)) - (gradientFrac / 2)) * 100
+  // var weirdColerAfterPerc = (((weirdColder - coldestBar) / (warmestBar - coldestBar)) + (gradientFrac / 2)) * 100
+  var weirdColdBeforePerc = (((weirdCold - coldestBar) / (warmestBar - coldestBar)) - (gradientFrac / 2)) * 100
+  var weirdColdAfterPerc = (((weirdCold - coldestBar) / (warmestBar - coldestBar)) + (gradientFrac / 2)) * 100
+  var weirdWarmBeforePerc = (((weirdWarm - coldestBar) / (warmestBar - coldestBar)) - (gradientFrac / 2)) * 100
+  var weirdWarmAfterPerc = (((weirdWarm - coldestBar) / (warmestBar - coldestBar)) + (gradientFrac / 2) ) * 100
+  // var weirdWarmerBeforePerc = (((weirdWarmer - coldestBar) / (warmestBar - coldestBar)) - (gradientFrac / 2)) * 100
+  // var weirdWarmerAfterPerc = (((weirdWarmer - coldestBar) / (warmestBar - coldestBar)) + (gradientFrac / 2) ) * 100
+
     svg.selectAll("rect")
       .data(data)
     .enter().append("rect")
       .attr("x", 1)
       .attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; })
       .attr("width", function(d) { return x(d.x1) - x(d.x0) ; })
+      .attr("stroke","rgb(101, 101, 101)")
+      .attr("shape-rendering", "crispEdges")
       .attr("height", function(d) { return height - y(d.length); })
-      .attr("class", function(d) { 
-        // console.log(weirdnessFunc((d.x1 + d.x0)/2))
+      .attr("fill",function(d,i) {
+        var gradient = defs.append("linearGradient")
+            .attr("id", "svgGradient" + i)
+            .attr("x1", (((coldestBar - d.x0) / (d.x1 - d.x0)) * 100) + "%")
+            .attr("x2", (((warmestBar - d.x0) / (d.x1 - d.x0)) * 100) + "%")
+            .attr("y1", "50%")
+            .attr("y2", "50%");
 
-        var w_ar = weirdnessFunc((d.x1 + d.x0)/2);
-        var w_c_ar = weirdnessClass(w_ar[0],w_ar[1],false)
-        return "bar itww-" + w_c_ar[1]
-      });
+            gradient.append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "rgba(230.4, 243.3, 247.5, 1.0)")
+            .attr("stop-opacity", 1);
+
+            gradient.append("stop")
+            .attr("offset", weirdColdBeforePerc + "%")
+            .attr("stop-color", "rgba(230.4, 243.3, 247.5, 1.0)")
+            .attr("stop-opacity", 1);
+
+            gradient.append("stop")
+            .attr("offset", weirdColdAfterPerc + "%")
+            .attr("stop-color", "rgba(241.8, 241.8, 241.8, 1.0)")
+            .attr("stop-opacity", 1);
+
+            gradient.append("stop")
+            .attr("offset", weirdWarmBeforePerc + "%")
+            .attr("stop-color", "rgba(241.8, 241.8, 241.8, 1.0)")
+            .attr("stop-opacity", 1);
+
+            gradient.append("stop")
+            .attr("offset", weirdWarmAfterPerc + "%")
+            .attr("stop-color", "rgba(255.0, 208.2, 199.8, 1.0)")
+            .attr("stop-opacity", 1);
+
+            gradient.append("stop")
+            .attr("offset", "100%")
+            .attr("stop-color", "rgba(255.0, 208.2, 199.8, 1.0)")
+            .attr("stop-opacity", 1);
+
+        return "url(#svgGradient" + i + ")"
+      })
+      // .attr("class", function(d) { 
+      //   // console.log(weirdnessFunc((d.x1 + d.x0)/2))
+
+      //   var w_ar = weirdnessFunc((d.x1 + d.x0)/2);
+      //   var w_c_ar = weirdnessClass(w_ar[0],w_ar[1],false)
+      //   return "bar itww-" + w_c_ar[1]
+      // });
 
       if (!phone) {
         data.forEach(function(d,i) {
