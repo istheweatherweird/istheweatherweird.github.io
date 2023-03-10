@@ -204,15 +204,137 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
         .attr("stroke-width", 2)
         .attr("opacity", 0.5)
         .attr("stroke", "black");
-        
+    
+      // build the sentence
+  var totalYears = pastTemps.length
+  
+  var weirdnessFunc = function(n) {
+    var perc = (pastTemps.filter(d => d < n).length / totalYears) * 100
+    var warm = perc >= 50
+    var percRel = warm ? perc : 100 - perc
+    percRel = Math.round(percRel, 0)  
+    var weirdness = 0
+    var record = false
+    if (percRel >= 97.5) {
+        weirdness = 3
+        if (percRel == 100) {
+            record = true
+        }
+    } else if (percRel >= 90) {
+        weirdness = 2
+    } else if (percRel >= 80) {
+        weirdness = 1
+    }
+    return [warm,weirdness,record,percRel];
+  }
+
+  var compTexts = [
+    ['colder', 'coldest'],
+    ['warmer', 'warmest']
+  ]
+
+  var weirdnessClass = function(warm,weirdness,record) {
+    // use unary + to convert boolean to integer for indexing
+    var compText = compTexts[+warm][+record]
+    var style = weirdness == 0 ? 'typical' : compText
+    return [compText,style]
+  }
+        // .attr("class", "bar")
+
+  var defs = svg.append("defs");
+
+  quantile = function(arr, q) {
+    var sorted = arr.sort(function(a,b) { return a-b; });
+    var pos = (sorted.length - 1) * q;
+    var base = Math.floor(pos);
+    var rest = pos - base;
+    if (sorted[base + 1] !== undefined) {
+        return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+    } else {
+        return sorted[base];
+    }
+  };
+
+  
+  
+
+// svg.append("path")
+// .attr("d", "M 25 25 L 75 25 L 75 75 Z")
+// .attr("stroke", "url(#svgGradient)")
+// .attr("fill", "none");
+
+  var gradientFrac = .1 // fraction of the range to make each gradient (max should be 1/smallest number of bars)
+  var coldestBar = data[0].x0 // the coldest value of the coldest bar
+  // var weirdColder = quantile(pastTemps,.1) // transition temperature from weird cold to typical
+  var weirdCold = quantile(pastTemps,.2) // transition temperature from weird cold to typical
+  var weirdWarm = quantile(pastTemps,.8) // transition temperature from weird warm to typical
+  // var weirdWarmer = quantile(pastTemps,.9) // transition temperature from weird warm to typical
+  var warmestBar = data[data.length-1].x1 // the warmest value of the warmest var
+  // var weirdColerBeforePerc = (((weirdColder - coldestBar) / (warmestBar - coldestBar)) - (gradientFrac / 2)) * 100
+  // var weirdColerAfterPerc = (((weirdColder - coldestBar) / (warmestBar - coldestBar)) + (gradientFrac / 2)) * 100
+  var weirdColdBeforePerc = (((weirdCold - coldestBar) / (warmestBar - coldestBar)) - (gradientFrac / 2)) * 100
+  var weirdColdAfterPerc = (((weirdCold - coldestBar) / (warmestBar - coldestBar)) + (gradientFrac / 2)) * 100
+  var weirdWarmBeforePerc = (((weirdWarm - coldestBar) / (warmestBar - coldestBar)) - (gradientFrac / 2)) * 100
+  var weirdWarmAfterPerc = (((weirdWarm - coldestBar) / (warmestBar - coldestBar)) + (gradientFrac / 2) ) * 100
+  // var weirdWarmerBeforePerc = (((weirdWarmer - coldestBar) / (warmestBar - coldestBar)) - (gradientFrac / 2)) * 100
+  // var weirdWarmerAfterPerc = (((weirdWarmer - coldestBar) / (warmestBar - coldestBar)) + (gradientFrac / 2) ) * 100
+
     svg.selectAll("rect")
       .data(data)
     .enter().append("rect")
-      .attr("class", "bar")
       .attr("x", 1)
       .attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; })
       .attr("width", function(d) { return x(d.x1) - x(d.x0) ; })
-      .attr("height", function(d) { return height - y(d.length); });
+      .attr("stroke","rgb(101, 101, 101)")
+      .attr("shape-rendering", "crispEdges")
+      .attr("height", function(d) { return height - y(d.length); })
+      .attr("fill",function(d,i) {
+        var gradient = defs.append("linearGradient")
+            .attr("id", "svgGradient" + i)
+            .attr("x1", (((coldestBar - d.x0) / (d.x1 - d.x0)) * 100) + "%")
+            .attr("x2", (((warmestBar - d.x0) / (d.x1 - d.x0)) * 100) + "%")
+            .attr("y1", "50%")
+            .attr("y2", "50%");
+
+            gradient.append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "rgba(230.4, 243.3, 247.5, 1.0)")
+            .attr("stop-opacity", 1);
+
+            gradient.append("stop")
+            .attr("offset", weirdColdBeforePerc + "%")
+            .attr("stop-color", "rgba(230.4, 243.3, 247.5, 1.0)")
+            .attr("stop-opacity", 1);
+
+            gradient.append("stop")
+            .attr("offset", weirdColdAfterPerc + "%")
+            .attr("stop-color", "rgba(241.8, 241.8, 241.8, 1.0)")
+            .attr("stop-opacity", 1);
+
+            gradient.append("stop")
+            .attr("offset", weirdWarmBeforePerc + "%")
+            .attr("stop-color", "rgba(241.8, 241.8, 241.8, 1.0)")
+            .attr("stop-opacity", 1);
+
+            gradient.append("stop")
+            .attr("offset", weirdWarmAfterPerc + "%")
+            .attr("stop-color", "rgba(255.0, 208.2, 199.8, 1.0)")
+            .attr("stop-opacity", 1);
+
+            gradient.append("stop")
+            .attr("offset", "100%")
+            .attr("stop-color", "rgba(255.0, 208.2, 199.8, 1.0)")
+            .attr("stop-opacity", 1);
+
+        return "url(#svgGradient" + i + ")"
+      })
+      // .attr("class", function(d) { 
+      //   // console.log(weirdnessFunc((d.x1 + d.x0)/2))
+
+      //   var w_ar = weirdnessFunc((d.x1 + d.x0)/2);
+      //   var w_c_ar = weirdnessClass(w_ar[0],w_ar[1],false)
+      //   return "bar itww-" + w_c_ar[1]
+      // });
 
       if (!phone) {
         data.forEach(function(d,i) {
@@ -237,12 +359,30 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
         .call(xAxis);
 
         
+    var weirdness_array = weirdnessFunc(obs)
+    var warm = weirdness_array[0]
+    var weirdness = weirdness_array[1]
+    var record = weirdness_array[2]
+    var percRel = weirdness_array[3]
+    var weirdnessTexts = [
+      'typical', 
+      'a bit weird',
+      'weird',
+      'very weird'
+    ]
+    var weirdnessText = weirdnessTexts[weirdness]
+
+    var weirdnessClassAr = weirdnessClass(warm,weirdness,record)
+    var compText = weirdnessClassAr[0]
+    var style = weirdnessClassAr[1]
+    
     svg.append("text")
         // .attr("dy", ".75em")
         .attr("y", -20)
         .attr("x", x(obs))
         .attr("text-anchor", "middle")
         .attr("font-size", "24px")
+        .attr("class","itww-" + style)
         .text(obsTime.getFullYear());
  
     var histTimeText = histTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
@@ -253,26 +393,6 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
             .text(obsInterval);
             // .text(histTimeText + " Temperatures");
 
-  // build the sentence
-  var totalYears = pastTemps.length
-  var perc = (pastTemps.filter(d => d < obs).length / totalYears) * 100
-  
-  var warm = perc >= 50
-  var percRel = warm ? perc : 100 - perc
-  percRel = Math.round(percRel, 0)
-  
-  var weirdness = 0
-  var record = false
-  if (percRel >= 97.5) {
-      weirdness = 3
-      if (percRel == 100) {
-          record = true
-      }
-  } else if (percRel >= 90) {
-      weirdness = 2
-  } else if (percRel >= 80) {
-      weirdness = 1
-  }
 
   var placeDropdownHtml = "<div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + place.place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
   placeMap.each(function(p) {
@@ -296,22 +416,8 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
   
   var obsRound = Math.round(obs, 0)
   
-  var weirdnessTexts = [
-    'typical', 
-    'a bit weird',
-    'weird',
-    'very weird'
-  ]
-  var weirdnessText = weirdnessTexts[weirdness]
 
-  var compTexts = [
-    ['colder', 'coldest'],
-    ['warmer', 'warmest']
-  ]
-  // use unary + to convert boolean to integer for indexing
-  var compText = compTexts[+warm][+record]
-  
-  var style = weirdness == 0 ? 'typical' : compText
+
   var weirdnessHtml = `<span class='itww-${style}'>${weirdnessText}</span>`
   // only style the comparative if its not typical
   var compHtml = weirdness == 0 ? compText : `<span class='itww-${style}'>${compText}</span>`

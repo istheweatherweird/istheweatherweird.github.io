@@ -1,5 +1,8 @@
 :root {
   --jumbotron-padding-y: 1.5rem;
+  --gray-dark: #343434;
+  /* --gray-light: rgba(0, 128, 0, 0.466); */
+  --gray-light: #ddd;
 }
 
 .jumbotron {
@@ -29,9 +32,31 @@
 
 /* graph */
 rect.bar {
-  stroke: steelblue;
-  fill: #74a1c7;
+  stroke: rgb(101, 101, 101);
   shape-rendering: crispEdges;
+}
+
+div.navbar {
+  background-color: var(--gray-dark) !important;
+}
+
+.dropdown-item.active, .dropdown-item:active {
+  background-color: var(--gray-dark) !important;
+}
+
+.btn-secondary:not(:disabled):not(.disabled).active, .btn-secondary:not(:disabled):not(.disabled):active, .show > .btn-secondary.dropdown-toggle {
+  background-color: var(--gray-dark) !important;
+  border-color: var(--gray-dark) !important;
+}
+
+.btn-secondary:not(:disabled):not(.disabled).active:focus, .btn-secondary:not(:disabled):not(.disabled):active:focus, .show > .btn-secondary.dropdown-toggle:focus, .btn-secondary.focus, .btn-secondary:focus {
+  box-shadow: 0 0 0 .2rem var(--gray-light);
+}
+
+/* rgba(108,117,125,.5); */
+
+.btn-secondary:hover {
+  background-color: var(--gray-dark) !important;
 }
 
 .bar text {
@@ -51,7 +76,7 @@ rect.bar {
 
 #notes {
     margin-top: 1em;
-    color: gray;
+    color: var(--gray-dark);
 }
 
 .tick text {
@@ -63,24 +88,58 @@ rect.bar {
   font: 20px sans-serif;  
 }
 
+/* rgb_from_rgba(r,g,b,a) = (r,g,b) .+ ((1-a) .* (255-r,255-g,255-b)) */
 .itww-typical {
-    color: green
+  color: gray;
 }
 
+.bar.itww-typical {
+  fill: rgba(241.8, 241.8, 241.8, 1.0);
+}
+
+/* .itww-typical {
+  color: green;
+  fill: rgba(0, 128, 0, 0.3);
+} */
+
+/* rect.bar.itww-typical {
+  fill: rgba(0, 128, 0, 0.3);
+} */
+
 .itww-warmer {
-    color: tomato
+    color: tomato;
+    fill: tomato;
+}
+
+.bar.itww-warmer {
+  fill: rgba(255.0, 208.2, 199.8, 1.0);
 }
 
 .itww-warmest {
-    color: red
+  color: red;
+  fill: red;
+}
+
+.bar.itww-warmest {
+  fill: rgba(255.0, 178.5, 178.5, 1.0);
 }
 
 .itww-colder {
-    color: lightblue
+  color: lightblue;
+  fill: lightblue;
+}
+
+.bar.itww-colder {
+  fill: rgba(230.4, 243.3, 247.5, 1.0);
 }
 
 .itww-coldest {
-    color: blue
+  color: blue;
+  fill: blue;
+}
+
+.bar.itww-coldest {
+  fill: rgba(178.5, 178.5, 255, 1.0);
 }
 
 .div-inline{
