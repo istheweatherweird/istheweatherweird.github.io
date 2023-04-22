@@ -404,6 +404,49 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
             .text(obsInterval);
             // .text(histTimeText + " Temperatures");
 
+  // if (makeTimeSeries) {
+      var timeSeriesWidth = parseInt(d3.select("#timeSeriesWrapper").style("width")) - margin.left - margin.right
+      var timeSeriesHeight = past.length * 24
+
+      var timeSeriesSvg = d3.select("#timeSeriesWrapper").append("svg")
+      .attr("width", timeSeriesWidth + margin.left + margin.right)
+      .attr("height", timeSeriesHeight + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      timeSeriesSvg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + timeSeriesHeight + ")")
+      .call(xAxis);
+
+      timeSeriesSvg.append("text")
+      .attr("y", -20)
+      .attr("x", x(obs))
+      .attr("text-anchor", "middle")
+      .attr("font-size", "24px")
+      .attr("class","itww-" + style)
+      .text(obsTime.getFullYear());
+      
+
+    var timeSeriesY = d3.scaleLinear()
+      .domain([0, past.length])
+      .range([timeSeriesHeight, 0]);
+
+    past.forEach(function(j,k) {
+      timeSeriesSvg.append("text")
+        .attr("dy", ".75em")
+        .attr("y", 5 + timeSeriesY(past.length) + k * 24)
+        .attr("x", x(j.temp))
+        .attr("text-anchor", "middle")
+          //.attr("fill", "white")
+          //.attr("stroke", "white")
+          .text(j.year);
+      })
+
+      // past
+  // }
+            
+
 
   var placeDropdownHtml = "<div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + place.place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
   placeMap.each(function(p) {
