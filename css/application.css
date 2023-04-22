@@ -187,3 +187,29 @@ div.navbar {
 .navbar-brand {
     margin-right: .6em;
 }
+
+.loader {
+  border: 16px solid rgba(241.8, 241.8, 241.8, 1.0);
+  border-top: 16px solid rgba(255.0, 208.2, 199.8, 1.0);
+  border-bottom: 16px solid lightblue;
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  animation: spin 2s linear infinite;
+}
+
+#spinning_therm {
+  width: 100px;
+}
+
+#loaderWrapper {
+  text-align: center;
+}
+
+
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

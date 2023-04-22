@@ -1,8 +1,42 @@
+// ------
+// CONFIG
+// -----
 var MOBILE_BINS_MAX = 6
 var DESKTOP_BINS_MIN = 9
 var DEFAULT_STATION = "KORD"
-var DATA_URL = "https://www.istheweatherweird.com/istheweatherweird-data-hourly"
+// var DATA_URL = "https://www.istheweatherweird.com/istheweatherweird-data-hourly"
+var DATA_URL = "https://www.istheweatherweird.com/itww-data-multiscale"
+// "https://github.com/istheweatherweird/itww-data-multiscale/tree/main/csv/multiscale/722190-13874"
+// "https://www.istheweatherweird.com/itww-data-multiscale/csv/multiscale/722190-13874/0101.csv"
+// var stations_url = DATA_URL + "/csv/stations.csv"
+var stations_url = "https://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/stations.csv"
+var intervals = ["hour","day","week","month","year"]
+var intervalPhrases = {
+  hour: "right now",
+  day: "in the past day",
+  week: "in the past week",
+  month: "in the past month",
+  year: "in the past year"
+}
+var intervalColumn = {
+  hour: "obs",
+  day: "D1",
+  week: "D7",
+  month: "D30",
+  year: "D365"
+}
+var weirdnessTexts = [
+  'typical', 
+  'a bit weird',
+  'weird',
+  'very weird'
+]
+var gradientFrac = .1 // fraction of the range to make each gradient (max should be 1/smallest number of bars)
+var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
 
+// -------
+// HELPERS
+// -------
 // helper for parsing URL
 var getUrlVars = function() {
     var vars = [], hash;
@@ -39,7 +73,28 @@ var getNearestStation = function(geoip, placeMap) {
             return d3.ascending(a.value.distance, b.value.distance); })[0].value;
 }
 
+var setUnits = function(place) { return (place.CTRY == "US" ? "F" : "C") };
+
+var quantile = function(arr, q) {
+  var sorted = arr.sort(function(a,b) { return a-b; });
+  var pos = (sorted.length - 1) * q;
+  var base = Math.floor(pos);
+  var rest = pos - base;
+  if (sorted[base + 1] !== undefined) {
+      return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+  } else {
+      return sorted[base];
+  }
+};
+
+// -------------
+// BIG FUNCTIONS
+// -------------
+
+// Look up observations - the step where we get the data and preprocess it before making the page
 var lookUpObservations = function(place,units,interval) {
+  if (!units) { units = setUnits(place) }
+  if (units == "F") { obsTemp = obsTemp * 1.8 + 32; }
   // get the most recent observation
   d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations/latest").then(function(response) {
     // if it doesn't have an observation, look further back
@@ -54,9 +109,6 @@ var lookUpObservations = function(place,units,interval) {
               feature = features[0]
               var obsTime = new Date(feature.properties.timestamp)
               var obsTemp = feature.properties.temperature.value
-              if (units == "F") {
-                obsTemp = obsTemp * 1.8 + 32;
-              }
               makePage(obsTime,obsTemp,place,units,interval)
           }
         })
@@ -64,9 +116,6 @@ var lookUpObservations = function(place,units,interval) {
     } else {
       var obsTime = new Date(response.properties.timestamp)
       var obsTemp = response.properties.temperature.value
-      if (units == "F") {
-        obsTemp = obsTemp * 1.8 + 32;
-      }
       makePage(obsTime,obsTemp,place,units,interval)
     }
   })
@@ -77,24 +126,28 @@ var makePage = function(obsTime, obsTemp, place, units, interval) {
   // put hist time at nearest hour
   var histTime = roundMinutes(obsTime)
   id = place.USAF + "-" + place.WBAN
+  // csv/multiscale/722190-13874/0101.csv
+  // var pastUrl = DATA_URL + "/csv/" + id + "/" + String(histTime.getUTCMonth()+1).padStart(2,'0') + String(histTime.getUTCDate()).padStart(2,'0') + ".csv"
+  // https://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/037720-99999/0407.csv
+  // https://www.istheweatherweird.com/itww-data-multiscale/csv/multiscale/722190-13874/0407.csv
+  // https://www.istheweatherweird.com/itww-data-multiscale/csv/multiscale/037720-99999/0407.csv
+  // var pastUrl = "https://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/" + id + "/" + String(histTime.getUTCMonth()+1).padStart(2,'0') + String(histTime.getUTCDate()).padStart(2,'0') + ".csv"
   var pastUrl = DATA_URL + "/csv/" + id + "/" + String(histTime.getUTCMonth()+1).padStart(2,'0') + String(histTime.getUTCDate()).padStart(2,'0') + ".csv"
   var histUTCHour = histTime.getUTCHours()
   d3.csv(pastUrl,function(d) {
-    if (+d.hour == histUTCHour) {
-      if (units == "C") {
-        return {year: +d.year, temp: (+d.temp) * 0.1}
-      } else {
-        return {year: +d.year, temp: 32 + (+d.temp) * 0.18}
+    if ((+d.hour == histUTCHour) && (d[intervalColumn[interval]])) {
+      return {
+        year: +d.year, 
+        temp: (units== "C") ? (+d[intervalColumn[interval]]) * 0.1 : 32 + (+d[intervalColumn[interval]]) * 0.18
       }
     };
   }).then(function(past) {
+    var wrapperElem = document.getElementById("loaderWrapper");
+    wrapperElem.parentNode.removeChild(wrapperElem);
     // make histograms
-    var sentence = makeHist("graphWrapper", obsTemp, past, obsTime, place, histTime, units, interval)
-    d3.select("#weird").html(sentence)
-    Place = place
-    Past = past
-    ObsTime = obsTime
-    d3.select("#notes").text('Notes:').append('ul').append('li').text(`Weather station: ${place['STATION NAME']}`).append('li').text(`NWS API last observation: ${obsTime.toLocaleDateString("en-US",{hour: "numeric", minute:"numeric", timeZone: place.TZ})}`).append('li').text(`NOAA ISD history: ${Past.length} observations since ${Past[0]['year']}`).append('li').text(`Timezone: ${place.TZ}`)
+    d3.select("#weird").html(makeHist("graphWrapper", obsTemp, past, obsTime, place, histTime, units, interval))
+    // make notes for the bottom
+    d3.select("#notes").text('Notes:').append('ul').append('li').text(`Weather station: ${place['STATION NAME']}`).append('li').text(`NWS API last observation: ${obsTime.toLocaleDateString("en-US",{hour: "numeric", minute:"numeric", timeZone: place.TZ})}`).append('li').text(`NOAA ISD history: ${past.length} observations since ${past[0]['year']}`).append('li').text(`Timezone: ${place.TZ}`)
 
     if (phone) {
       $("#weird").css("font-size","30px")
@@ -102,15 +155,6 @@ var makePage = function(obsTime, obsTemp, place, units, interval) {
     }
   });
 }
-
-var intervals = ["hour","day","week","month","year"]
-var intervalPhrases = {
-    hour: "right now",
-    day: "in the past day",
-    week: "in the past week",
-    month: "in the past month",
-    year: "in the past year"
-} //
 
 var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, interval) {
   var pastTemps = past.map(function(d) { return d.temp })
@@ -180,10 +224,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
         .tickFormat(function(d, i) {
             var label = ""
             label += d
-            if (phone_cull && i % 2 != 0) {
-                label = ""
-            }
-
+            if (phone_cull && i % 2 != 0) { label = "" }
             if (i == last_label_i) {
                 label += "º" + units
             }
@@ -205,7 +246,6 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
         .attr("opacity", 0.5)
         .attr("stroke", "black");
     
-      // build the sentence
   var totalYears = pastTemps.length
   
   var weirdnessFunc = function(n) {
@@ -239,31 +279,9 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
     var style = weirdness == 0 ? 'typical' : compText
     return [compText,style]
   }
-        // .attr("class", "bar")
 
   var defs = svg.append("defs");
 
-  quantile = function(arr, q) {
-    var sorted = arr.sort(function(a,b) { return a-b; });
-    var pos = (sorted.length - 1) * q;
-    var base = Math.floor(pos);
-    var rest = pos - base;
-    if (sorted[base + 1] !== undefined) {
-        return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
-    } else {
-        return sorted[base];
-    }
-  };
-
-  
-  
-
-// svg.append("path")
-// .attr("d", "M 25 25 L 75 25 L 75 75 Z")
-// .attr("stroke", "url(#svgGradient)")
-// .attr("fill", "none");
-
-  var gradientFrac = .1 // fraction of the range to make each gradient (max should be 1/smallest number of bars)
   var coldestBar = data[0].x0 // the coldest value of the coldest bar
   // var weirdColder = quantile(pastTemps,.1) // transition temperature from weird cold to typical
   var weirdCold = quantile(pastTemps,.2) // transition temperature from weird cold to typical
@@ -279,8 +297,9 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
   // var weirdWarmerBeforePerc = (((weirdWarmer - coldestBar) / (warmestBar - coldestBar)) - (gradientFrac / 2)) * 100
   // var weirdWarmerAfterPerc = (((weirdWarmer - coldestBar) / (warmestBar - coldestBar)) + (gradientFrac / 2) ) * 100
 
-    svg.selectAll("rect")
-      .data(data)
+
+  svg.selectAll("rect")
+    .data(data)
     .enter().append("rect")
       .attr("x", 1)
       .attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; })
@@ -290,41 +309,41 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
       .attr("height", function(d) { return height - y(d.length); })
       .attr("fill",function(d,i) {
         var gradient = defs.append("linearGradient")
-            .attr("id", "svgGradient" + i)
-            .attr("x1", (((coldestBar - d.x0) / (d.x1 - d.x0)) * 100) + "%")
-            .attr("x2", (((warmestBar - d.x0) / (d.x1 - d.x0)) * 100) + "%")
-            .attr("y1", "50%")
-            .attr("y2", "50%");
+          .attr("id", "svgGradient" + i)
+          .attr("x1", (((coldestBar - d.x0) / (d.x1 - d.x0)) * 100) + "%")
+          .attr("x2", (((warmestBar - d.x0) / (d.x1 - d.x0)) * 100) + "%")
+          .attr("y1", "50%")
+          .attr("y2", "50%");
 
-            gradient.append("stop")
-            .attr("offset", "0%")
-            .attr("stop-color", "rgba(230.4, 243.3, 247.5, 1.0)")
-            .attr("stop-opacity", 1);
+        gradient.append("stop")
+          .attr("offset", "0%")
+          .attr("stop-color", "rgba(230.4, 243.3, 247.5, 1.0)")
+          .attr("stop-opacity", 1);
 
-            gradient.append("stop")
-            .attr("offset", weirdColdBeforePerc + "%")
-            .attr("stop-color", "rgba(230.4, 243.3, 247.5, 1.0)")
-            .attr("stop-opacity", 1);
+        gradient.append("stop")
+          .attr("offset", weirdColdBeforePerc + "%")
+          .attr("stop-color", "rgba(230.4, 243.3, 247.5, 1.0)")
+          .attr("stop-opacity", 1);
 
-            gradient.append("stop")
-            .attr("offset", weirdColdAfterPerc + "%")
-            .attr("stop-color", "rgba(241.8, 241.8, 241.8, 1.0)")
-            .attr("stop-opacity", 1);
+        gradient.append("stop")
+          .attr("offset", weirdColdAfterPerc + "%")
+          .attr("stop-color", "rgba(241.8, 241.8, 241.8, 1.0)")
+          .attr("stop-opacity", 1);
 
-            gradient.append("stop")
-            .attr("offset", weirdWarmBeforePerc + "%")
-            .attr("stop-color", "rgba(241.8, 241.8, 241.8, 1.0)")
-            .attr("stop-opacity", 1);
+        gradient.append("stop")
+          .attr("offset", weirdWarmBeforePerc + "%")
+          .attr("stop-color", "rgba(241.8, 241.8, 241.8, 1.0)")
+          .attr("stop-opacity", 1);
 
-            gradient.append("stop")
-            .attr("offset", weirdWarmAfterPerc + "%")
-            .attr("stop-color", "rgba(255.0, 208.2, 199.8, 1.0)")
-            .attr("stop-opacity", 1);
+        gradient.append("stop")
+          .attr("offset", weirdWarmAfterPerc + "%")
+          .attr("stop-color", "rgba(255.0, 208.2, 199.8, 1.0)")
+          .attr("stop-opacity", 1);
 
-            gradient.append("stop")
-            .attr("offset", "100%")
-            .attr("stop-color", "rgba(255.0, 208.2, 199.8, 1.0)")
-            .attr("stop-opacity", 1);
+        gradient.append("stop")
+          .attr("offset", "100%")
+          .attr("stop-color", "rgba(255.0, 208.2, 199.8, 1.0)")
+          .attr("stop-opacity", 1);
 
         return "url(#svgGradient" + i + ")"
       })
@@ -354,36 +373,28 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
       }
 
     svg.append("g")
-        .attr("class", "x axis")
-        .attr("transform", "translate(0," + height + ")")
-        .call(xAxis);
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
 
         
     var weirdness_array = weirdnessFunc(obs)
-    var warm = weirdness_array[0]
     var weirdness = weirdness_array[1]
     var record = weirdness_array[2]
     var percRel = weirdness_array[3]
-    var weirdnessTexts = [
-      'typical', 
-      'a bit weird',
-      'weird',
-      'very weird'
-    ]
     var weirdnessText = weirdnessTexts[weirdness]
 
-    var weirdnessClassAr = weirdnessClass(warm,weirdness,record)
+    var weirdnessClassAr = weirdnessClass(weirdness_array[0],weirdness,record)
     var compText = weirdnessClassAr[0]
     var style = weirdnessClassAr[1]
     
     svg.append("text")
-        // .attr("dy", ".75em")
-        .attr("y", -20)
-        .attr("x", x(obs))
-        .attr("text-anchor", "middle")
-        .attr("font-size", "24px")
-        .attr("class","itww-" + style)
-        .text(obsTime.getFullYear());
+      .attr("y", -20)
+      .attr("x", x(obs))
+      .attr("text-anchor", "middle")
+      .attr("font-size", "24px")
+      .attr("class","itww-" + style)
+      .text(obsTime.getFullYear());
  
     var histTimeText = histTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
     var obsInterval = interval == "hour" ? `${histTimeText} Temperatures` : `Temperatures for the ${interval} ending ${histTimeText}`
@@ -413,10 +424,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
     intervalDropdownHtml += "' href='?station=" + place.ICAO + "&units=" + units + "&interval=" + i + "'>" + intervalPhrases[i] + "</a>"
   });
   intervalDropdownHtml += "</div></div>"
-  
   var obsRound = Math.round(obs, 0)
-  
-
 
   var weirdnessHtml = `<span class='itww-${style}'>${weirdnessText}</span>`
   // only style the comparative if its not typical
@@ -425,12 +433,8 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
   var obsVerb = interval == "hour" ? "It's" : "It was"
   var obsAvg = interval == "hour" ? "" : " on average"
   obsInterval = obsInterval.replace("Temperatures", "temperatures")
-
   
-  var unitHtml = "<div class='dropdown div-inline'><button id='itww-units-button' class='btn btn-secondary btn-lg btn-units dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>º" + units + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
-
-  unitHtml += `<a class='dropdown-item${(units == "F") ? " active" : ""}' href='/?station=` + place.ICAO + `&units=F'>ºF</a><a class='dropdown-item${(units == "C") ? " active" : ""}' href='/?station=` + place.ICAO + "&units=C'>ºC</a></div></div>"
-
+  var unitHtml = `<div class='dropdown div-inline'><button id='itww-units-button' class='btn btn-secondary btn-lg btn-units dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>º` + units + `</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'><a class='dropdown-item${(units == "F") ? " active" : ""}' href='/?station=` + place.ICAO + `&units=F'>ºF</a><a class='dropdown-item${(units == "C") ? " active" : ""}' href='/?station=` + place.ICAO + "&units=C'>ºC</a></div></div>"
 
   var sentence1 = `The weather in ${placeDropdownHtml} ${verbTense} ${weirdnessHtml} ${intervalDropdownHtml}.` 
   var sentence2 = ''
@@ -445,52 +449,24 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
   return sentence1 + ' <br/><span style="font-size:25px">' + sentence2 + '</span>'
 }
 
-var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
-
-
-var stations_url = DATA_URL + "/csv/stations.csv"
+// --------------
+// THE MAIN EVENT
+// --------------
+// load a csv with the list of all the stations,
+// and based on the results, call lookUpObservations()
 d3.csv(stations_url).then(function(data) {
     placeMap = d3.map(data, function(d) { return d.ICAO })
-    var interval;
-    if ('interval' in getUrlVars()) {
-        interval = getUrlVars().interval
-    } else {
-        interval = "hour"
-    }
-    /* If we get an error we will */
-    var onError = function (error) {
-      lookUpObservations(placeMap.get(DEFAULT_STATION),"F")
-    };
-
-    station = getUrlVars().station
-    units = getUrlVars().units
+    var interval = ('interval' in getUrlVars()) ? getUrlVars().interval : "hour"
+    var onError = function(error) { lookUpObservations(placeMap.get(DEFAULT_STATION),"F","hour") };
+    var station = getUrlVars().station
+    var units = getUrlVars().units
     if (station) {
         place = placeMap.get(station)
-        if (!units) {
-          if (place.CTRY == "US") {
-              units = "F"
-          } else {
-              units = "C"
-          }
-        }
-        if (place) {
-            lookUpObservations(place,units,interval)
-        } else {
-            onError()
-        }
+        place ? lookUpObservations(place,units,interval) : onError()
     } else {
         $.getJSON("https://get.geojs.io/v1/ip/geo.json", function(geoip) {
             place = getNearestStation(geoip, placeMap)
-            if (!units) {
-              if (place.CTRY == "US") {
-                  units = "F"
-              } else {
-                  units = "C"
-              }
-            }
             lookUpObservations(place,units,interval)
-        }).fail(function() {
-            onError()
-        })
+        }).fail(function() { onError() })
     }
 });
