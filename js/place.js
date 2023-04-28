@@ -388,6 +388,11 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
     var compText = weirdnessClassAr[0]
     var style = weirdnessClassAr[1]
     
+    var weirdnessTextStyle = function(val) {
+      var war = weirdnessFunc(val)
+      return weirdnessClass(war[0],war[1],war[2])[1]
+    }
+
     svg.append("text")
       .attr("y", -20)
       .attr("x", x(obs))
@@ -405,8 +410,9 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
             // .text(histTimeText + " Temperatures");
 
   // if (makeTimeSeries) {
+      var timeSeriesYearHeight = 14
       var timeSeriesWidth = parseInt(d3.select("#timeSeriesWrapper").style("width")) - margin.left - margin.right
-      var timeSeriesHeight = past.length * 24
+      var timeSeriesHeight = past.length * timeSeriesYearHeight
 
       var timeSeriesSvg = d3.select("#timeSeriesWrapper").append("svg")
       .attr("width", timeSeriesWidth + margin.left + margin.right)
@@ -420,10 +426,10 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
       .call(xAxis);
 
       timeSeriesSvg.append("text")
-      .attr("y", -20)
+      .attr("y", -5)
       .attr("x", x(obs))
       .attr("text-anchor", "middle")
-      .attr("font-size", "24px")
+      .attr("font-size", "20px")
       .attr("class","itww-" + style)
       .text(obsTime.getFullYear());
       
@@ -431,13 +437,55 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
     var timeSeriesY = d3.scaleLinear()
       .domain([0, past.length])
       .range([timeSeriesHeight, 0]);
+    
+    var timeSeriesTextWidth = (warmestBar - coldestBar)/timeSeriesYearHeight
 
     past.forEach(function(j,k) {
+      var textLoc = x(j.temp)
+      var textGradient = defs.append("linearGradient")
+      .attr("id", "textGradient" + k)
+      .attr("x1", (((coldestBar - (j.temp - timeSeriesTextWidth/2)) / timeSeriesTextWidth) * 100) + "%")
+      .attr("x2", (((warmestBar - (j.temp - timeSeriesTextWidth/2)) / timeSeriesTextWidth) * 100) + "%")
+      .attr("y1", "50%")
+      .attr("y2", "50%");
+
+    textGradient.append("stop")
+      .attr("offset", "0%")
+      .attr("stop-color", "rgba(173.0, 216.0, 230.0, 1.0)")
+      .attr("stop-opacity", 1);
+
+    textGradient.append("stop")
+      .attr("offset", weirdColdBeforePerc + "%")
+      .attr("stop-color", "rgba(173.0, 216.0, 230.0, 1.0)")
+      .attr("stop-opacity", 1);
+
+    textGradient.append("stop")
+      .attr("offset", weirdColdAfterPerc + "%")
+      .attr("stop-color", "rgba(128.0, 128.0, 128.0, 1.0)")
+      .attr("stop-opacity", 1);
+
+    textGradient.append("stop")
+      .attr("offset", weirdWarmBeforePerc + "%")
+      .attr("stop-color", "rgba(128.0, 128.0, 128.0, 1.0)")
+      .attr("stop-opacity", 1);
+
+    textGradient.append("stop")
+      .attr("offset", weirdWarmAfterPerc + "%")
+      .attr("stop-color", "rgba(255.0, 99.0, 71.0, 1.0)")
+      .attr("stop-opacity", 1);
+
+    textGradient.append("stop")
+      .attr("offset", "100%")
+      .attr("stop-color", "rgba(255.0, 99.0, 71.0, 1.0)")
+      .attr("stop-opacity", 1);
       timeSeriesSvg.append("text")
-        .attr("dy", ".75em")
-        .attr("y", 5 + timeSeriesY(past.length) + k * 24)
-        .attr("x", x(j.temp))
+        .attr("dy", ".5em") // .75em")
+        .attr("y", 5 + timeSeriesY(past.length) + (past.length - k - 1) * timeSeriesYearHeight)
+        .attr("x", textLoc)
         .attr("text-anchor", "middle")
+        .attr("fill","url(#textGradient" + k + ")")
+        .attr("font-size", "14px")
+        // .attr("class","itww-" + weirdnessTextStyle(j.temp))
           //.attr("fill", "white")
           //.attr("stroke", "white")
           .text(j.year);
