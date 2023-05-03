@@ -162,6 +162,7 @@ var makePage = function(obsTime, obsTemp, place, units, interval) {
   }).then(function(past) {
     var wrapperElem = document.getElementById("loaderWrapper");
     wrapperElem.parentNode.removeChild(wrapperElem);
+    document.getElementById("timeSeriesButtonWrapper").style.display = "block";
     // make histograms
     d3.select("#weird").html(makeHist("graphWrapper", obsTemp, past, obsTime, place, histTime, units, interval))
     // make notes for the bottom
