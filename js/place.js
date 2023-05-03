@@ -409,6 +409,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
             .text(obsInterval);
             // .text(histTimeText + " Temperatures");
 
+
   // if (makeTimeSeries) {
       var timeSeriesYearHeight = 14
       var timeSeriesWidth = parseInt(d3.select("#timeSeriesWrapper").style("width")) - margin.left - margin.right
@@ -491,6 +492,8 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
           .text(j.year);
       })
 
+      var x = document.getElementById("timeSeriesWrapper");
+      x.style.display = "none";
       // past
   // }
             
@@ -561,3 +564,17 @@ d3.csv(stations_url).then(function(data) {
         }).fail(function() { onError() })
     }
 });
+
+
+// time series button
+function showTimeSeries() {
+  var x = document.getElementById("timeSeriesWrapper");
+  var y = document.getElementById("timeSeriesButton");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+    y.innerHTML = "Hide time series"
+  } else {
+    x.style.display = "none";
+    y.innerHTML = "Show time series"
+  }
+} 

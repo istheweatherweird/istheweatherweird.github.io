@@ -156,6 +156,16 @@ div.navbar {
   margin-bottom: 10px;
 }
 
+.btn-time-series {
+  color: #000;
+  background-color: #FFF;
+  padding: 0px 10px;
+  font-size: 1.5rem;
+  font-weight: 300;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
 .btn-units {
   color: #000;
   background-color: #FFF;
