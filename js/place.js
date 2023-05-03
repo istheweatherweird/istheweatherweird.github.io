@@ -6,6 +6,7 @@ var DESKTOP_BINS_MIN = 9
 var DEFAULT_STATION = "KORD"
 // var DATA_URL = "https://www.istheweatherweird.com/istheweatherweird-data-hourly"
 var DATA_URL = "https://www.istheweatherweird.com/itww-data-multiscale"
+https://github.com/istheweatherweird/itww-data-multiscale/tree/main/csv
 // "https://github.com/istheweatherweird/itww-data-multiscale/tree/main/csv/multiscale/722190-13874"
 // "https://www.istheweatherweird.com/itww-data-multiscale/csv/multiscale/722190-13874/0101.csv"
 // var stations_url = DATA_URL + "/csv/stations.csv"
@@ -95,30 +96,47 @@ var quantile = function(arr, q) {
 var lookUpObservations = function(place,units,interval) {
   if (!units) { units = setUnits(place) }
   if (units == "F") { obsTemp = obsTemp * 1.8 + 32; }
-  // get the most recent observation
-  d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations/latest").then(function(response) {
-    // if it doesn't have an observation, look further back
-    if (response.properties.temperature.value == null) {
-        d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations").then(function(newResponse) {
-          // filter to non-null temps
-          var features = newResponse.features.filter(function(x) {return x.properties.temperature.value != null})
-          if (features.length > 0) {
-              // sort chronologically
-              features = features.sort(function(x,y) {
-                  return d3.descending(x.properties.timestamp, y.properties.timestamp) })
-              feature = features[0]
-              var obsTime = new Date(feature.properties.timestamp)
-              var obsTemp = feature.properties.temperature.value
-              makePage(obsTime,obsTemp,place,units,interval)
-          }
-        })
-    // otherwise, go for it!
-    } else {
-      var obsTime = new Date(response.properties.timestamp)
-      var obsTemp = response.properties.temperature.value
-      makePage(obsTime,obsTemp,place,units,interval)
-    }
-  })
+
+  if (interval == "hour") {
+    // get the most recent observation
+    d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations/latest").then(function(response) {
+      // if it doesn't have an observation, look further back
+      if (response.properties.temperature.value == null) {
+          d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations").then(function(newResponse) {
+            // filter to non-null temps
+            var features = newResponse.features.filter(function(x) {return x.properties.temperature.value != null})
+            if (features.length > 0) {
+                // sort chronologically
+                features = features.sort(function(x,y) {
+                    return d3.descending(x.properties.timestamp, y.properties.timestamp) })
+                feature = features[0]
+                var obsTime = new Date(feature.properties.timestamp)
+                var obsTemp = feature.properties.temperature.value
+                makePage(obsTime,obsTemp,place,units,interval)
+            }
+          })
+      // otherwise, go for it!
+      } else {
+        var obsTime = new Date(response.properties.timestamp)
+        var obsTemp = response.properties.temperature.value
+        makePage(obsTime,obsTemp,place,units,interval)
+      }
+    })
+  } else {
+    // var histUTCHour = histTime.getUTCHours()
+    d3.csv(DATA_URL + "/csv/latest/" + place.USAF + "-" + place.WBAN + ".csv",function(d) {
+      if (d.timescale == intervalColumn[interval]) {
+        var obsTime = new Date(d.timestamp)
+        makePage(obsTime,d.temp,place,units,interval)
+      }
+      // if ((+d.hour == histUTCHour) && (d[intervalColumn[interval]])) {
+      //   return {
+      //     year: +d.year, 
+      //     temp: (units== "C") ? (+d[intervalColumn[interval]]) * 0.1 : 32 + (+d[intervalColumn[interval]]) * 0.18
+      //   }
+      // };
+    })
+  }
 }
 
 // look up static CSV with obs and use it + observed temp to make histogram
@@ -132,7 +150,7 @@ var makePage = function(obsTime, obsTemp, place, units, interval) {
   // https://www.istheweatherweird.com/itww-data-multiscale/csv/multiscale/722190-13874/0407.csv
   // https://www.istheweatherweird.com/itww-data-multiscale/csv/multiscale/037720-99999/0407.csv
   // var pastUrl = "https://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/" + id + "/" + String(histTime.getUTCMonth()+1).padStart(2,'0') + String(histTime.getUTCDate()).padStart(2,'0') + ".csv"
-  var pastUrl = DATA_URL + "/csv/" + id + "/" + String(histTime.getUTCMonth()+1).padStart(2,'0') + String(histTime.getUTCDate()).padStart(2,'0') + ".csv"
+  var pastUrl = DATA_URL + "/csv/isd/" + id + "/" + String(histTime.getUTCMonth()+1).padStart(2,'0') + String(histTime.getUTCDate()).padStart(2,'0') + ".csv"
   var histUTCHour = histTime.getUTCHours()
   d3.csv(pastUrl,function(d) {
     if ((+d.hour == histUTCHour) && (d[intervalColumn[interval]])) {
