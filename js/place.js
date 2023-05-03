@@ -95,7 +95,6 @@ var quantile = function(arr, q) {
 // Look up observations - the step where we get the data and preprocess it before making the page
 var lookUpObservations = function(place,units,interval) {
   if (!units) { units = setUnits(place) }
-  if (units == "F") { obsTemp = obsTemp * 1.8 + 32; }
 
   if (interval == "hour") {
     // get the most recent observation
@@ -141,6 +140,7 @@ var lookUpObservations = function(place,units,interval) {
 
 // look up static CSV with obs and use it + observed temp to make histogram
 var makePage = function(obsTime, obsTemp, place, units, interval) {
+  if (units == "F") { obsTemp = obsTemp * 1.8 + 32; }
   // put hist time at nearest hour
   var histTime = roundMinutes(obsTime)
   id = place.USAF + "-" + place.WBAN
