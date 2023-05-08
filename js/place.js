@@ -34,6 +34,7 @@ var weirdnessTexts = [
 ]
 var gradientFrac = .1 // fraction of the range to make each gradient (max should be 1/smallest number of bars)
 var phone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+var yearLimit = 20
 
 // -------
 // HELPERS
@@ -510,6 +511,22 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
           //.attr("stroke", "white")
           .text(j.year);
       })
+      
+      console.log(timeSeriesSvg.selectAll("line.verticalGrid").data(x.ticks(data.length+1)))
+      timeSeriesSvg.selectAll("line.verticalGrid").data(x.ticks(data.length+1)).enter()
+      .append("line")
+          .attr(
+          {
+              "class":"verticalGrid",
+              "x1" : function(d){ return x(d);},
+              "x2" : function(d){ return x(d);},
+              "y1" : margin.top,
+              "y2" : timeSeriesHeight,
+              "fill" : "none",
+              "shape-rendering" : "crispEdges",
+              "stroke" : "black",
+              "stroke-width" : "1px"
+          });
 
       var x = document.getElementById("timeSeriesWrapper");
       x.style.display = "none";
@@ -530,11 +547,13 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
 
   var intervalDropdownHtml = "<div class='dropdown div-inline'><button id='itww-interval-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='intervalDropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + intervalPhrases[interval] + "</button><div class='dropdown-menu' aria-labelledby='intervalDropdownMenuButton'>"
   intervals.forEach(function(i) {
-    intervalDropdownHtml += "<a class='dropdown-item"
-    if (i == interval) {
-      intervalDropdownHtml += " active"
+    if (enoughYears(i)) {
+      intervalDropdownHtml += "<a class='dropdown-item"
+      if (i == interval) {
+        intervalDropdownHtml += " active"
+      }
+      intervalDropdownHtml += "' href='?station=" + place.ICAO + "&units=" + units + "&interval=" + i + "'>" + intervalPhrases[i] + "</a>"
     }
-    intervalDropdownHtml += "' href='?station=" + place.ICAO + "&units=" + units + "&interval=" + i + "'>" + intervalPhrases[i] + "</a>"
   });
   intervalDropdownHtml += "</div></div>"
   var obsRound = Math.round(obs, 0)
