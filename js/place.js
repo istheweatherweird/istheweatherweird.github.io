@@ -423,13 +423,15 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
       return weirdnessClass(war[0],war[1],war[2])[1]
     }
 
+    var currentYear = obsTime.getFullYear()
+
     svg.append("text")
       .attr("y", -20)
       .attr("x", x(obs))
       .attr("text-anchor", "middle")
       .attr("font-size", "24px")
       .attr("class","itww-" + style)
-      .text(obsTime.getFullYear());
+      .text(currentYear);
  
     var histTimeText = histTime.toLocaleDateString("en-US",{month: "short", day: "numeric", hour: "numeric", timeZone: place.TZ})
     var obsInterval = interval == "hour" ? `${histTimeText} Temperatures` : `Temperatures for the ${interval} ending ${histTimeText}`
@@ -443,7 +445,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
   // if (makeTimeSeries) {
       var timeSeriesYearHeight = 14
       var timeSeriesWidth = parseInt(d3.select("#timeSeriesWrapper").style("width")) - margin.left - margin.right
-      var timeSeriesHeight = past.length * timeSeriesYearHeight
+      var timeSeriesHeight = timeSeriesYearHeight * (3 + (currentYear - past[0].year)) // past.length
 
       var timeSeriesSvg = d3.select("#timeSeriesWrapper").append("svg")
       .attr("width", timeSeriesWidth + margin.left + margin.right)
@@ -456,18 +458,17 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
       .attr("transform", "translate(0," + timeSeriesHeight + ")")
       .call(xAxis);
 
+      var timeSeriesY = d3.scaleLinear()
+      .domain([past[0].year - 1.5, currentYear + .5])
+      .range([timeSeriesHeight, 0]);
+
       timeSeriesSvg.append("text")
-      .attr("y", -5)
+      .attr("y", timeSeriesY(currentYear)) //-5)
       .attr("x", x(obs))
       .attr("text-anchor", "middle")
       .attr("font-size", "20px")
       .attr("class","itww-" + style)
-      .text(obsTime.getFullYear());
-      
-
-    var timeSeriesY = d3.scaleLinear()
-      .domain([0, past.length])
-      .range([timeSeriesHeight, 0]);
+      .text(currentYear);
     
     var timeSeriesTextWidth = (warmestBar - coldestBar)/timeSeriesYearHeight
 
@@ -511,7 +512,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
       .attr("stop-opacity", 1);
       timeSeriesSvg.append("text")
         .attr("dy", ".5em") // .75em")
-        .attr("y", 5 + timeSeriesY(past.length) + (past.length - k - 1) * timeSeriesYearHeight)
+        .attr("y", 5 + timeSeriesY(j.year)) // + (past.length - k - 1) * timeSeriesYearHeight)
         .attr("x", textLoc)
         .attr("text-anchor", "middle")
         .attr("fill","url(#textGradient" + k + ")")
@@ -521,22 +522,37 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
           //.attr("stroke", "white")
           .text(j.year);
       })
+
+      // console.log(timeSeriesY(currentYear))
+      // console.log(timeSeriesY(past[0].year))
+      ticks.forEach(function(j,k) {
+        timeSeriesSvg.append("line")
+        .attr("x1", x(j))
+        .attr("y1", timeSeriesY(currentYear)) //-20)
+        .attr("x2", x(j))
+        .attr("y2", timeSeriesY(past[0].year)) //height)
+        .attr("stroke-width", 2)
+        .attr("opacity", 0.5)
+        .attr("stroke", "black");
+      })
+      // console.log(ticks)
+
       
-      console.log(timeSeriesSvg.selectAll("line.verticalGrid").data(x.ticks(data.length+1)))
-      timeSeriesSvg.selectAll("line.verticalGrid").data(x.ticks(data.length+1)).enter()
-      .append("line")
-          .attr(
-          {
-              "class":"verticalGrid",
-              "x1" : function(d){ return x(d);},
-              "x2" : function(d){ return x(d);},
-              "y1" : margin.top,
-              "y2" : timeSeriesHeight,
-              "fill" : "none",
-              "shape-rendering" : "crispEdges",
-              "stroke" : "black",
-              "stroke-width" : "1px"
-          });
+      // console.log(timeSeriesSvg.selectAll("line.verticalGrid").data(x.ticks(data.length+1)))
+      // timeSeriesSvg.selectAll("line.verticalGrid").data(x.ticks(data.length+1)).enter()
+      // .append("line")
+      //     .attr(
+      //     {
+      //         "class":"verticalGrid",
+      //         "x1" : function(d){ return x(d);},
+      //         "x2" : function(d){ return x(d);},
+      //         "y1" : timeSeriesY(currentYear), //margin.top,
+      //         "y2" : timeSeriesY(past[0].year), //timeSeriesHeight,
+      //         "fill" : "none",
+      //         "shape-rendering" : "crispEdges",
+      //         "stroke" : "black",
+      //         "stroke-width" : "1px"
+      //     });
 
       var x = document.getElementById("timeSeriesWrapper");
       x.style.display = "none";
