@@ -4,6 +4,7 @@
 var MOBILE_BINS_MAX = 6
 var DESKTOP_BINS_MIN = 9
 var DEFAULT_STATION = "KORD"
+var min_years = 25
 // var DATA_URL = "https://www.istheweatherweird.com/istheweatherweird-data-hourly"
 var DATA_URL = "https://www.istheweatherweird.com/itww-data-multiscale"
 https://github.com/istheweatherweird/itww-data-multiscale/tree/main/csv
@@ -152,19 +153,28 @@ var makePage = function(obsTime, obsTemp, place, units, interval) {
   // var pastUrl = "https://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/" + id + "/" + String(histTime.getUTCMonth()+1).padStart(2,'0') + String(histTime.getUTCDate()).padStart(2,'0') + ".csv"
   var pastUrl = DATA_URL + "/csv/isd/" + id + "/" + String(histTime.getUTCMonth()+1).padStart(2,'0') + String(histTime.getUTCDate()).padStart(2,'0') + ".csv"
   var histUTCHour = histTime.getUTCHours()
-  d3.csv(pastUrl,function(d) {
-    if ((+d.hour == histUTCHour) && (d[intervalColumn[interval]])) {
+
+  d3.csv(pastUrl).then(function(data) {
+    var possibleIntervals = intervals.filter(function(i) {
+      totalYears = data.filter(function(r) { return ((+r.hour == histUTCHour) && (r[intervalColumn[i]]))})
+      return totalYears.length >= min_years
+    })
+
+    if (!(possibleIntervals.includes(interval))) {
+      location.href = "/?station=" + place.ICAO + '&units=' + units + '&interval=hour'
+    }
+    
+    var past = data.filter(function(d) {return ((+d.hour == histUTCHour) && (d[intervalColumn[interval]]))}).map(function(d){ 
       return {
         year: +d.year, 
         temp: (units== "C") ? (+d[intervalColumn[interval]]) * 0.1 : 32 + (+d[intervalColumn[interval]]) * 0.18
       }
-    };
-  }).then(function(past) {
+    })
     var wrapperElem = document.getElementById("loaderWrapper");
     wrapperElem.parentNode.removeChild(wrapperElem);
     document.getElementById("timeSeriesButtonWrapper").style.display = "block";
     // make histograms
-    d3.select("#weird").html(makeHist("graphWrapper", obsTemp, past, obsTime, place, histTime, units, interval))
+    d3.select("#weird").html(makeHist("graphWrapper", obsTemp, past, obsTime, place, histTime, units, interval, possibleIntervals))
     // make notes for the bottom
     d3.select("#notes").text('Notes:').append('ul').append('li').text(`Weather station: ${place['STATION NAME']}`).append('li').text(`NWS API last observation: ${obsTime.toLocaleDateString("en-US",{hour: "numeric", minute:"numeric", timeZone: place.TZ})}`).append('li').text(`NOAA ISD history: ${past.length} observations since ${past[0]['year']}`).append('li').text(`Timezone: ${place.TZ}`)
 
@@ -175,7 +185,7 @@ var makePage = function(obsTime, obsTemp, place, units, interval) {
   });
 }
 
-var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, interval) {
+var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, interval, possibleIntervals) {
   var pastTemps = past.map(function(d) { return d.temp })
 
   var margin = {top: 60, right: 30, bottom: 50, left: 30}
@@ -529,7 +539,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
   placeDropdownHtml += "</div></div>"
 
   var intervalDropdownHtml = "<div class='dropdown div-inline'><button id='itww-interval-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='intervalDropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + intervalPhrases[interval] + "</button><div class='dropdown-menu' aria-labelledby='intervalDropdownMenuButton'>"
-  intervals.forEach(function(i) {
+  possibleIntervals.forEach(function(i) {
     intervalDropdownHtml += "<a class='dropdown-item"
     if (i == interval) {
       intervalDropdownHtml += " active"
@@ -547,7 +557,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
   var obsAvg = interval == "hour" ? "" : " on average"
   obsInterval = obsInterval.replace("Temperatures", "temperatures")
   
-  var unitHtml = `<div class='dropdown div-inline'><button id='itww-units-button' class='btn btn-secondary btn-lg btn-units dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>º` + units + `</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'><a class='dropdown-item${(units == "F") ? " active" : ""}' href='/?station=` + place.ICAO + `&units=F'>ºF</a><a class='dropdown-item${(units == "C") ? " active" : ""}' href='/?station=` + place.ICAO + "&units=C'>ºC</a></div></div>"
+  var unitHtml = `<div class='dropdown div-inline'><button id='itww-units-button' class='btn btn-secondary btn-lg btn-units dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>º` + units + `</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'><a class='dropdown-item${(units == "F") ? " active" : ""}' href='/?station=` + place.ICAO + "&units=F&interval=" + interval + `'>ºF</a><a class='dropdown-item${(units == "C") ? " active" : ""}' href='/?station=` + place.ICAO + "&units=C&interval=" + interval + "'>ºC</a></div></div>"
 
   var sentence1 = `The weather in ${placeDropdownHtml} ${verbTense} ${weirdnessHtml} ${intervalDropdownHtml}.` 
   var sentence2 = ''
