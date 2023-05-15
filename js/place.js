@@ -446,12 +446,13 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
       var timeSeriesYearHeight = 14
       var timeSeriesWidth = parseInt(d3.select("#timeSeriesWrapper").style("width")) - margin.left - margin.right
       var timeSeriesHeight = timeSeriesYearHeight * (3 + (currentYear - past[0].year)) // past.length
+      var timeSeriesMarginTop = 30
 
       var timeSeriesSvg = d3.select("#timeSeriesWrapper").append("svg")
       .attr("width", timeSeriesWidth + margin.left + margin.right)
-      .attr("height", timeSeriesHeight + margin.top + margin.bottom)
+      .attr("height", timeSeriesHeight + timeSeriesMarginTop + margin.bottom)
     .append("g")
-      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+      .attr("transform", "translate(" + margin.left + "," + timeSeriesMarginTop + ")");
 
       timeSeriesSvg.append("g")
       .attr("class", "x axis")
@@ -528,11 +529,11 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
       ticks.forEach(function(j,k) {
         timeSeriesSvg.append("line")
         .attr("x1", x(j))
-        .attr("y1", timeSeriesY(currentYear)) //-20)
+        .attr("y1", -timeSeriesMarginTop) // timeSeriesY(currentYear)) //-20) timeSeriesHeight, 
         .attr("x2", x(j))
-        .attr("y2", timeSeriesY(past[0].year)) //height)
-        .attr("stroke-width", 2)
-        .attr("opacity", 0.5)
+        .attr("y2", timeSeriesHeight) //timeSeriesY(past[0].year)) //height)
+        .attr("stroke-width", 0.5)
+        .attr("opacity", 0.25)
         .attr("stroke", "black");
       })
       // console.log(ticks)
