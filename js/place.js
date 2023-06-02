@@ -517,7 +517,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
         .attr("x", textLoc)
         .attr("text-anchor", "middle")
         .attr("fill","url(#textGradient" + k + ")")
-        .attr("font-size", "14px")
+        .attr("font-size", "16px")
         // .attr("class","itww-" + weirdnessTextStyle(j.temp))
           //.attr("fill", "white")
           //.attr("stroke", "white")
@@ -532,7 +532,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
         .attr("y1", -timeSeriesMarginTop) // timeSeriesY(currentYear)) //-20) timeSeriesHeight, 
         .attr("x2", x(j))
         .attr("y2", timeSeriesHeight) //timeSeriesY(past[0].year)) //height)
-        .attr("stroke-width", 0.5)
+        .attr("stroke-width", 0.32)
         .attr("opacity", 0.25)
         .attr("stroke", "black");
       })
