@@ -182,6 +182,7 @@ var makePage = function(obsTime, obsTemp, place, units, interval) {
     if (phone) {
       $("#weird").css("font-size","30px")
       $('#itww-place-button').css("font-size", "30px")
+      $('#itww-interval-button').css("font-size", "30px")
     }
   });
 }
