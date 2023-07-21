@@ -7,11 +7,10 @@ var DEFAULT_STATION = "KORD"
 var min_years = 25
 // var DATA_URL = "https://www.istheweatherweird.com/istheweatherweird-data-hourly"
 var DATA_URL = "https://www.istheweatherweird.com/itww-data-multiscale"
-https://github.com/istheweatherweird/itww-data-multiscale/tree/main/csv
+// https://github.com/istheweatherweird/itww-data-multiscale/tree/main/csv
 // "https://github.com/istheweatherweird/itww-data-multiscale/tree/main/csv/multiscale/722190-13874"
 // "https://www.istheweatherweird.com/itww-data-multiscale/csv/multiscale/722190-13874/0101.csv"
-// var stations_url = DATA_URL + "/csv/stations.csv"
-var stations_url = "https://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/stations.csv"
+var stations_url = DATA_URL + "/csv/stations.csv"
 var intervals = ["hour","day","week","month","year"]
 var intervalPhrases = {
   hour: "right now",
