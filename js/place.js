@@ -602,7 +602,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
   } else {
     // sentence2 += `It's ${obsRound}${unitHtml}, the ${compHtml} ${histTimeText} temperature on record.`
     obsInterval = obsInterval.replace("temperatures", "temperature")
-    sentence2 += `${obsVerb} ${obsRound}ºF${obsAvg}, the ${compHtml} ${obsInterval} on record.`
+    sentence2 += `${obsVerb} ${obsRound}${unitHtml}${obsAvg}, the ${compHtml} ${obsInterval} on record.`
   }
   return sentence1 + ' <br/><span style="font-size:25px">' + sentence2 + '</span>'
 }
