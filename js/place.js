@@ -139,12 +139,6 @@ var makePage = function(obsTime, obsTemp, place, units, interval) {
   // put hist time at nearest hour
   var histTime = roundMinutes(obsTime)
   id = place.USAF + "-" + place.WBAN
-  // csv/multiscale/722190-13874/0101.csv
-  // var pastUrl = DATA_URL + "/csv/" + id + "/" + String(histTime.getUTCMonth()+1).padStart(2,'0') + String(histTime.getUTCDate()).padStart(2,'0') + ".csv"
-  // https://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/037720-99999/0407.csv
-  // https://www.istheweatherweird.com/itww-data-multiscale/csv/multiscale/722190-13874/0407.csv
-  // https://www.istheweatherweird.com/itww-data-multiscale/csv/multiscale/037720-99999/0407.csv
-  // var pastUrl = "https://www.istheweatherweird.com/istheweatherweird-data-hourly/csv/" + id + "/" + String(histTime.getUTCMonth()+1).padStart(2,'0') + String(histTime.getUTCDate()).padStart(2,'0') + ".csv"
   var pastUrl = DATA_URL + "/csv/isd/" + id + "/" + String(histTime.getUTCMonth()+1).padStart(2,'0') + String(histTime.getUTCDate()).padStart(2,'0') + ".csv"
   var histUTCHour = histTime.getUTCHours()
 
@@ -154,7 +148,9 @@ var makePage = function(obsTime, obsTemp, place, units, interval) {
       return totalYears.length >= min_years
     })
 
-    if (!(possibleIntervals.includes(interval))) {
+    // if the requested interval is unavailable (not enough data) and we're not already on hourly
+    // switch to hourly
+    if (!(possibleIntervals.includes(interval)) && interval != "hour") {
       location.href = "/?station=" + place.ICAO + '&units=' + units + '&interval=hour'
     }
     
@@ -595,7 +591,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
   } else {
     // sentence2 += `It's ${obsRound}${unitHtml}, the ${compHtml} ${histTimeText} temperature on record.`
     obsInterval = obsInterval.replace("temperatures", "temperature")
-    sentence2 += `${obsVerb} ${obsRound}ºF${obsAvg}, the ${compHtml} ${obsInterval} on record.`
+    sentence2 += `${obsVerb} ${obsRound}${unitHtml}${obsAvg}, the ${compHtml} ${obsInterval} on record.`
   }
   return sentence1 + ' <br/><span style="font-size:25px">' + sentence2 + '</span>'
 }
