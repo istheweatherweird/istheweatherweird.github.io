@@ -125,12 +125,18 @@ async function lookUpObservations(place,units,interval) {
     }
   }
 
-  d3.csv(DATA_URL + "/csv/latest/" + place.USAF + "-" + place.WBAN + ".csv",function(d) {
+  const csvResponse = await d3.csv(DATA_URL + "/csv/latest/" + place.USAF + "-" + place.WBAN + ".csv")
+  for (const d of csvResponse) {
     if (d.timescale == intervalColumn[interval]) {
       var obsTime = new Date(d.timestamp)
-      makePage(obsTime,d.temp,place,units,interval)
+      return makePage(obsTime,d.temp,place,units,interval)
     }
-  })
+  }
+
+  // if we never got the data, try switching to hourly as a fallback
+  if (interval != "hour") {
+      location.href = "/?station=" + place.ICAO + '&units=' + units + '&interval=hour'
+  }
 }
 
 // look up static CSV with obs and use it + observed temp to make histogram
