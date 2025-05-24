@@ -1,15 +1,12 @@
 // ------
 // CONFIG
 // -----
+
 var MOBILE_BINS_MAX = 6
 var DESKTOP_BINS_MIN = 9
 var DEFAULT_STATION = "KORD"
 var min_years = 25
-// var DATA_URL = "https://www.istheweatherweird.com/istheweatherweird-data-hourly"
 var DATA_URL = "https://www.istheweatherweird.com/itww-data-multiscale"
-// https://github.com/istheweatherweird/itww-data-multiscale/tree/main/csv
-// "https://github.com/istheweatherweird/itww-data-multiscale/tree/main/csv/multiscale/722190-13874"
-// "https://www.istheweatherweird.com/itww-data-multiscale/csv/multiscale/722190-13874/0101.csv"
 var stations_url = DATA_URL + "/csv/stations.csv"
 var intervals = ["hour","day","week","month","year"]
 var intervalPhrases = {
@@ -60,8 +57,8 @@ function roundMinutes(date) {
     return date;
 }
 
-var getNearestStation = function(geoip, placeMap) {
-    placeMap.each(function(value, key) {
+var getNearestStation = function(geoip, placeIndex) {
+    placeIndex.forEach(function(value, key) {
         // return the place closest to the geoipResponse
         value.distance = distance(
             +geoip.latitude,
@@ -70,9 +67,9 @@ var getNearestStation = function(geoip, placeMap) {
             +value.LON)
     });
     
-    return d3.entries(placeMap)
+    return Array.from(placeIndex)
         .sort(function(a, b) {
-            return d3.ascending(a.value.distance, b.value.distance); })[0].value;
+            return d3.ascending(a[1].distance, b[1].distance); })[0][1]
 }
 
 var setUnits = function(place) { return (place.CTRY == "US" ? "F" : "C") };
@@ -94,49 +91,46 @@ var quantile = function(arr, q) {
 // -------------
 
 // Look up observations - the step where we get the data and preprocess it before making the page
-var lookUpObservations = function(place,units,interval) {
+async function lookUpObservations(place,units,interval) {
   if (!units) { units = setUnits(place) }
 
   if (interval == "hour") {
     // get the most recent observation
-    d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations/latest").then(function(response) {
-      // if it doesn't have an observation, look further back
+    try {
+      const response = await d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations/latest")
       if (response.properties.temperature.value == null) {
-          d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations").then(function(newResponse) {
-            // filter to non-null temps
-            var features = newResponse.features.filter(function(x) {return x.properties.temperature.value != null})
-            if (features.length > 0) {
-                // sort chronologically
-                features = features.sort(function(x,y) {
-                    return d3.descending(x.properties.timestamp, y.properties.timestamp) })
-                feature = features[0]
-                var obsTime = new Date(feature.properties.timestamp)
-                var obsTemp = feature.properties.temperature.value
-                makePage(obsTime,obsTemp,place,units,interval)
-            }
-          })
-      // otherwise, go for it!
-      } else {
-        var obsTime = new Date(response.properties.timestamp)
-        var obsTemp = response.properties.temperature.value
-        makePage(obsTime,obsTemp,place,units,interval)
+        throw new Error("No temperature!")
       }
-    })
-  } else {
-    // var histUTCHour = histTime.getUTCHours()
-    d3.csv(DATA_URL + "/csv/latest/" + place.USAF + "-" + place.WBAN + ".csv",function(d) {
-      if (d.timescale == intervalColumn[interval]) {
-        var obsTime = new Date(d.timestamp)
-        makePage(obsTime,d.temp,place,units,interval)
+      // if it doesn't have an observation, look further back
+      var obsTime = new Date(response.properties.timestamp)
+      var obsTemp = response.properties.temperature.value
+      return makePage(obsTime,obsTemp,place,units,interval)
+    } catch(error) {
+      try {
+        const newResponse = await d3.json("https://api.weather.gov/stations/"+ place.ICAO + "/observations")
+        // filter to non-null temps
+        var features = newResponse.features.filter(function(x) {return x.properties.temperature.value != null})
+        if (features.length > 0) {
+            // sort chronologically
+            features = features.sort(function(x,y) {
+                return d3.descending(x.properties.timestamp, y.properties.timestamp) })
+            feature = features[0]
+            var obsTime = new Date(feature.properties.timestamp)
+            var obsTemp = feature.properties.temperature.value
+            return makePage(obsTime,obsTemp,place,units,interval)
+        }
+      } catch(error) {
+        // move on to using the itww-data-multiscale latest observation instead
       }
-      // if ((+d.hour == histUTCHour) && (d[intervalColumn[interval]])) {
-      //   return {
-      //     year: +d.year, 
-      //     temp: (units== "C") ? (+d[intervalColumn[interval]]) * 0.1 : 32 + (+d[intervalColumn[interval]]) * 0.18
-      //   }
-      // };
-    })
+    }
   }
+
+  d3.csv(DATA_URL + "/csv/latest/" + place.USAF + "-" + place.WBAN + ".csv",function(d) {
+    if (d.timescale == intervalColumn[interval]) {
+      var obsTime = new Date(d.timestamp)
+      makePage(obsTime,d.temp,place,units,interval)
+    }
+  })
 }
 
 // look up static CSV with obs and use it + observed temp to make histogram
@@ -563,7 +557,7 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
 
 
   var placeDropdownHtml = "<div class='dropdown div-inline'><button id='itww-place-button' class='btn btn-secondary btn-lg btn-place dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>" + place.place + "</button><div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
-  placeMap.each(function(p) {
+  placeIndex.forEach(function(p) {
     placeDropdownHtml += "<a class='dropdown-item"
     if (p.ICAO == place.ICAO) {
       placeDropdownHtml += " active"
@@ -612,17 +606,17 @@ var makeHist = function(wrapperId, obs, past, obsTime, place, histTime, units, i
 // load a csv with the list of all the stations,
 // and based on the results, call lookUpObservations()
 d3.csv(stations_url).then(function(data) {
-    placeMap = d3.map(data, function(d) { return d.ICAO })
+    placeIndex = d3.index(data, (d) => d.ICAO)
     var interval = ('interval' in getUrlVars()) ? getUrlVars().interval : "hour"
-    var onError = function(error) { lookUpObservations(placeMap.get(DEFAULT_STATION),"F","hour") };
+    var onError = function(error) { lookUpObservations(placeIndex.get(DEFAULT_STATION),"F","hour") };
     var station = getUrlVars().station
     var units = getUrlVars().units
     if (station) {
-        place = placeMap.get(station)
+        place = placeIndex.get(station)
         place ? lookUpObservations(place,units,interval) : onError()
     } else {
         $.getJSON("https://get.geojs.io/v1/ip/geo.json", function(geoip) {
-            place = getNearestStation(geoip, placeMap)
+            place = getNearestStation(geoip, placeIndex)
             lookUpObservations(place,units,interval)
         }).fail(function() { onError() })
     }
